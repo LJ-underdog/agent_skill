@@ -2,8 +2,8 @@
 name: project-summary
 description: |
   Write a rigorous, verifiable project summary for a completed engineering task.
-  Supports a parent-child inheritance model: the skill instantiates a task-specific
-  child template, evolves it during the task, and promotes learnings back to the parent.
+  Supports a parent-child inheritance model: instantiate a task-specific child
+  template, evolve it during the task, and promote learnings back to the parent.
   Trigger phrases: "write project summary", "create project doc", "document this task",
   "总结这个任务", "写 project summary", "做任务总结",
   "用 project-summary skill 做 X", "instantiate project-summary for X".
@@ -15,170 +15,216 @@ description: |
 
 ---
 
-## 继承模型概览
+## 继承模型
 
 ```
-SKILL.md (父类 — 通用原则)
+SKILL.md (父类 — 通用原则 + Changelog)
   └── PRE_TASK_GUIDE.md (父类配套 — 通用记录规范)
-        └── INSTANCE_TEMPLATE.md (子类骨架 — instantiation 起点)
-              └── project_{name}/TASK_TEMPLATE.md (子类实例 — 任务特化)
+        └── INSTANCE_TEMPLATE.md (子类骨架)
+              ├── project_{name}/TASK_TEMPLATE.md   (子类实例)
+              └── project_{name}/TASK_TEMPLATE.md   (可继承另一个子类)
+                      ↓ [任务结束后 Promote]
+              SKILL.md / PRE_TASK_GUIDE.md (父类更新)
 ```
 
-子类实例**继承**父类的所有结构和原则，只需填写任务特有的部分（参数 schema、指标定义、通过标准）。任务结束后，子类中发现的通用规律可以**反向 promote** 回父类。
+子类**只写与父类不同的部分**（参数 schema、指标、约束等）；父类原则自动适用，不在子类重复。
 
 ---
 
 ## Workflow 1：Instantiate（任务开始时）
 
-> **触发**：用户说"用 project-summary skill 做 X 任务"时执行。
+### Step 1：自动读取上下文
 
-### Step 1：信息收集
+按顺序读取，**能从代码/文档获取的不问用户**：
 
-按顺序收集以下信息（优先从代码/文档读取，不足时再问用户）：
-
-**从代码/文档自动读取：**
-- 相关仓库结构（`ls`、`git log --oneline -5`）
-- 已有的 README、spec、已知 bug 记录
-- 上一次任务的 recall knowledge（`/root/.local/share/claude/recall/hanchang/knowledge/index.md`）
-- MEMORY.md 中的相关条目
-
-**需要向用户确认的（最多问 5 个）：**
 ```
-Q1. 任务目标是什么？（一句话，SMART 原则）
-Q2. 成功标准是什么？（什么指标达到什么值算完成）
-Q3. 最可能的 debug/实验循环是什么？（跑推理？跑单元测试？对比 diff？）
-Q4. 有什么已知约束？（不能改某些文件、特定硬件要求等）
-Q5. 有什么已知的风险或预期 bug？
+① git log --oneline -10              → 了解近期改动和代码状态
+② cat README.md / CLAUDE.md          → 约束（不能改哪些文件/装饰器）
+③ recall knowledge index             → 已知事实，避免重复验证
+   /root/.local/share/claude/recall/hanchang/knowledge/index.md
+④ MEMORY.md                          → 已知 bug、环境约束、路径
+   /root/.claude/projects/-home-hanchang/memory/MEMORY.md
+⑤ 上一个相关子类（如有）              → 可继承的参数 schema / 已知事实
+   /home/hanchang/project_{related_name}/TASK_TEMPLATE.md
 ```
 
-### Step 2：生成子类实例
+### Step 2：推导子类各字段
 
-读取 `INSTANCE_TEMPLATE.md`，填入收集到的信息，生成：
+从读取到的信息推导（不是直接问用户），**推导逻辑**如下：
+
+| 子类字段 | 推导来源 | 推导逻辑 |
+|---------|---------|---------|
+| **参数 Schema** | 代码接口 / 命令行参数 | 找 argparse / click / 函数签名 / Makefile target，列出可变的输入维度 |
+| **指标 Schema** | 任务目标描述 / 已有测试 | "成功"是什么？cos_sim？延迟？通过率？找现有测试/benchmark 脚本的输出格式 |
+| **成功标准** | 已有 baseline / 规格文档 | 参考已有 baseline 数值，或从文档找到明确阈值 |
+| **已知事实** | recall / MEMORY.md | 直接提取已标 `[已验证]` 的条目 |
+| **已知约束** | CLAUDE.md / 代码注释 | 找 `# DO NOT MODIFY`、`@support_torch_compile`、README 中的约束说明 |
+| **父类/兄弟类** | project_* 目录 | 如果有相关任务，读其 TASK_TEMPLATE.md 的参数 schema |
+
+### Step 3：向用户确认（最多 5 个问题，只问推导不出来的）
+
+```
+Q1. 任务目标？（如果 README 已有，跳过）
+Q2. 成功标准的具体数值？（如果有 baseline 测试，跳过）
+Q3. 有哪些不能改的文件/接口？（CLAUDE.md 没有的部分）
+Q4. 预期的 debug 循环是什么？（跑测试？端到端推理？diff 对比？）
+Q5. 有没有相关的兄弟任务可以继承参数 schema？（输入任务名）
+```
+
+### Step 4：生成子类实例
+
+读取 `INSTANCE_TEMPLATE.md`，用 Step 1-3 的信息填入，生成：
 
 ```
 /home/hanchang/project_{name}/TASK_TEMPLATE.md
 ```
 
-同时创建完整的项目目录结构（参见父类 1.1 节）。
+同时建立项目目录（见 1.1 节）。
 
-### Step 3：向用户展示子类实例，确认后开始任务
+### Step 5：展示给用户确认
 
-展示生成的 `TASK_TEMPLATE.md`，重点确认：
-- 参数 schema 是否覆盖了所有关键变量
-- 成功标准是否可量化
-- 有没有遗漏的已知约束
+展示生成的 TASK_TEMPLATE.md 关键部分，确认：
+- 参数 schema 覆盖了所有关键变量
+- 成功标准可量化
+- 已知约束没有遗漏
 
 ---
 
 ## Workflow 2：Evolve（任务进行中）
 
-> 使用 PRE_TASK_GUIDE.md 中的模板记录实验、假说、代码发现、commit。
+使用 PRE_TASK_GUIDE.md 中的模板记录实验、假说、代码发现、commit。
 
-### 发现通用规律时：标记 Promotion Candidate
+### 主动识别 Promotion Candidate 的触发条件
 
-当你在任务中发现了一个**可能适用于其他任务**的规律（不仅限于本任务），在子类的 `## Promotion Candidates` 节追加：
+Claude 在以下情况应**主动**提出 PC，不等用户标记：
+
+| 触发场景 | PC 类型 | 建议加入父类位置 |
+|---------|---------|---------------|
+| 自检清单某条没检查到，导致 review 发现问题 | 补充清单条目 | SKILL.md 自检清单 |
+| 遇到父类"常见坑"没覆盖的坑 | 新增坑条目 | SKILL.md 常见坑 |
+| 发现某类实验结果容易被漏记 | 新增遗漏提醒 | PRE_TASK_GUIDE.md 常见遗漏点 |
+| 某个代码错误模式在多个地方出现 | 代码正确性检查项 | SKILL.md 自检清单-代码正确性 |
+| 发现"理论推断"和"实验验证"容易混淆的新场景 | 区分规则 | SKILL.md 自检清单-表述范围 |
+| 某参数在本任务很重要，可能在同类任务也很重要 | 参数 schema 建议 | PRE_TASK_GUIDE.md 任务类型示例 |
+| 写弯路文档时发现父类结构不够用 | 写作结构改进 | SKILL.md 写作结构 |
+
+### 标记格式
+
+在 TASK_TEMPLATE.md 的 `## Promotion Candidates` 节追加：
 
 ```markdown
-## Promotion Candidates
-
-### [PC-{编号}] {简短描述}
+### [PC-{N}] {简短描述}
 发现时间：YYYY-MM-DD
-来源：实验 #{编号} / 代码发现 #{编号}
+触发场景：{从上表选择，或自定义}
+来源：实验 #{编号} / 代码发现 #{编号} / review 过程
 
-**内容**：
-{具体的规律/原则/checklist 条目，用父类可以直接使用的语言描述}
+**内容**（用父类可直接使用的措辞）：
+{具体的原则/checklist 条目/坑描述}
 
-**为什么认为可以 promote**：
-{在本任务中如何体现？为什么认为对其他任务也有价值？}
+**为什么 promote**：{在本任务中的具体表现 + 为什么认为对其他任务也有价值}
 
-**建议加入父类的位置**：
-[ ] SKILL.md — 自检清单
+**建议加入父类位置**：
+[ ] SKILL.md — 自检清单-数据准确性
+[ ] SKILL.md — 自检清单-表述范围
+[ ] SKILL.md — 自检清单-代码正确性
+[ ] SKILL.md — 自检清单-逻辑结构
 [ ] SKILL.md — 常见坑
-[ ] SKILL.md — 写作结构
-[ ] PRE_TASK_GUIDE.md — 记录模板
 [ ] PRE_TASK_GUIDE.md — 常见遗漏点
+[ ] PRE_TASK_GUIDE.md — 任务类型示例
 [ ] 其他：{具体位置}
 
-**置信度**：
-[ ] 高（在本任务中有明确实验证据）
-[ ] 中（有观察支撑，但未做完整验证）
-[ ] 低（直觉，需要更多任务验证）
+**置信度**：[ ] 高（实验证据）  [ ] 中（多次观察）  [ ] 低（直觉）
+**Review 结果**：[ ] 待 review  [ ] 接受  [ ] 修改→{修改后内容}  [ ] 拒绝→{原因}
 ```
-
-### 子类实例的更新节奏
-
-| 时机 | 需要更新的内容 |
-|------|--------------|
-| 每次实验后 | experiment_log.md |
-| 发现新 bug/根因后 | hypothesis_log.md + 01_investigation.md |
-| Commit 后 | commit_log.md |
-| 发现通用规律后 | Promotion Candidates 节 |
-| 任务阶段性完成后 | TASK_TEMPLATE.md 的状态字段 |
 
 ---
 
 ## Workflow 3：Promote（任务结束后）
 
-> 任务完成后执行，将子类中发现的通用规律反向 promote 到父类。
+### Step 1：收集并分组
 
-### Step 1：收集所有 Promotion Candidates
-
-读取 `project_{name}/TASK_TEMPLATE.md` 中的 `## Promotion Candidates` 节，列出所有候选项。
-
-### Step 2：整理并向用户展示
-
-按父类位置分组，展示给用户：
+读取 TASK_TEMPLATE.md 的 `## Promotion Candidates`，按建议位置分组展示：
 
 ```
-以下是本次任务中发现的 {N} 个 Promotion Candidates，请 review 后决定是否合并到父类模板：
+本次任务共 {N} 个 Promotion Candidates：
 
-━━━ 建议加入 SKILL.md — 自检清单 ━━━
-[PC-1] {内容}
-来源：{实验/代码依据}
-置信度：高
-→ [ ] 接受  [ ] 修改后接受  [ ] 拒绝
+置信度高（实验证据）：{N1} 个
+置信度中（多次观察）：{N2} 个
+置信度低（直觉）：{N3} 个
+```
+
+### Step 2：分组展示，逐条 review
+
+```
+━━━ SKILL.md — 自检清单 ━━━
+
+[PC-1] {内容}（置信度：高）
+来源：{实验/review 依据}
+→ 接受 / 修改 / 拒绝？
 
 [PC-2] ...
 
-━━━ 建议加入 PRE_TASK_GUIDE.md — 常见遗漏点 ━━━
-[PC-3] ...
+━━━ PRE_TASK_GUIDE.md — 常见遗漏点 ━━━
+...
 ```
 
-### Step 3：执行用户决定
+### Step 3：执行
 
-- **接受**：直接 Edit 对应父类文件，加入该条目
-- **修改后接受**：用用户给出的措辞修改后 Edit
-- **拒绝**：在子类 TASK_TEMPLATE.md 中标注 `[REJECTED: {原因}]`，保留记录
+- **接受**：Edit 父类文件
+- **修改后接受**：按用户给的措辞 Edit
+- **拒绝**：在子类 TASK_TEMPLATE.md 中标 `[REJECTED: {原因}]`
 
-### Step 4：Commit 更新后的父类
+### Step 4：更新父类 Changelog（见文末）并 Commit
 
 ```bash
 cd /home/hanchang/agent_skill
 git add .claude/skills/project-summary/
-git commit -m "promote: update parent template from {task-name} task
+git commit -m "promote: {task-name} → {N} items added to parent template
 
-Promoted items:
-- [PC-N] {描述} → SKILL.md 自检清单
-- [PC-M] {描述} → PRE_TASK_GUIDE.md 常见遗漏点
-"
+$(PC 列表)"
 git push origin main
 ```
+
+---
+
+## 跨子类继承（兄弟任务）
+
+当任务 B 与任务 A 高度相关（同一代码库、同类问题），子类 B 可以继承子类 A：
+
+```
+INSTANCE_TEMPLATE.md (骨架)
+    ↓
+project_{A}/TASK_TEMPLATE.md (子类 A)
+    ↓
+project_{B}/TASK_TEMPLATE.md (子类 B，继承 A 的参数 schema 和已知事实)
+```
+
+**子类 B 的继承方式**：
+1. 在 TASK_TEMPLATE.md 开头写 `# 继承自：project_{A}/TASK_TEMPLATE.md`
+2. 直接复用 A 的参数 schema（不重写相同字段）
+3. 只写 B 与 A 不同的参数/约束/已知事实
+4. A 中已验证的事实在 B 中标 `[继承自 A，已验证]`，无需重验
+
+**适用场景示例**：
+- FP8 任务继承 MoE 任务（同一 MoE kernel，已知 preshuffle/block_m 规律）
+- tp=4/8 任务继承 tp=2 任务（参数 schema 相同，只是 TP 数不同）
+- 同一模型的不同量化方案（复用架构参数 schema）
 
 ---
 
 ## 父类原则（所有子类必须遵守）
 
 ### 数据记录原则
-- 结论只能来自：实验数值、代码原文（文件路径+行号+copy-paste）、文档引用
+- 结论只来自：实验数值、代码原文（文件路径+行号+copy-paste）、文档引用
 - 推断标注 `[HYPOTHESIS]`，验证后才标 `[CONFIRMED]`
 - 不同参数配置的实验结果绝不并列比较
 - 失败路径和被证伪假说必须完整保留
 
 ### 表述原则
-- 每个结论注明适用条件（"在配置 X 下"）
+- 每个结论注明适用条件
 - 数值精度与实测一致（不夸大精度）
 - "未测试"的场景明确标注
-- 少量样本的观察不能推广为全称结论
+- 少量样本的观察不推广为全称结论
 
 ### 代码原则
 - 代码示例必须 copy-paste（不从记忆重写）
@@ -192,9 +238,7 @@ git push origin main
 
 ---
 
-## 自检清单（父类通用部分）
-
-写完 summary 后逐条验证：
+## 自检清单（父类通用）
 
 #### 数据准确性
 - [ ] 每个关键指标值标注了完整实验配置（按本任务参数 schema）
@@ -205,13 +249,13 @@ git push origin main
 #### 表述范围
 - [ ] 结论说明适用条件，无无条件全称陈述
 - [ ] 少量样本的观察标注了样本量限制
-- [ ] "未测试"场景明确标注（"理论推断"vs"实验验证"）
+- [ ] "未测试"场景明确标注（区分"理论推断"和"实验验证"）
 - [ ] `[HYPOTHESIS]` 和 `[CONFIRMED]` 分开，未混用
 
 #### 代码正确性
 - [ ] 代码示例语法正确（或明确标 pseudocode）
 - [ ] 函数返回值类型正确
-- [ ] 运算符优先级正确
+- [ ] 运算符优先级正确（有歧义时加括号）
 - [ ] 数据类型匹配
 
 #### 逻辑结构
@@ -223,22 +267,36 @@ git push origin main
 
 ---
 
+## 常见坑（通用）
+
+| 坑 | 正确处理 |
+|----|---------|
+| 依赖图把时间顺序画成逻辑依赖 | 每条边问"B 能否在 A 完成前独立进行" |
+| 相似指标来自不同实验配置被并列 | 一律分开，标注各自的完整参数配置 |
+| 结论没有说明适用条件 | 加上"在配置 X 下"、"当参数 Y 为 Z 时" |
+| 教训从其他任务直接照搬 | 写教训前确认：在本任务中实际遇到了吗？ |
+| 只记录最终成功的路径 | 被证伪的假说和失败方案同样保留 |
+| 发现新 bug 时忘记记录触发条件 | 立即记录"什么操作/实验触发了这个发现" |
+| 代码示例从记忆重写 | 永远 copy-paste，永远不从记忆重写 |
+
+---
+
+## Changelog（父类更新历史）
+
+> 记录每次 Promote 操作带来的父类变更。
+
+| 日期 | 来源任务 | 变更内容 | PC 编号 |
+|------|---------|---------|---------|
+| 2026-04-24 | step35-flash | 初始版本，基于 5 个子任务的 review 经验 | — |
+
+---
+
 ## 材料来源速查
 
 ```
-recall knowledge files:
-  /root/.local/share/claude/recall/hanchang/knowledge/index.md
-
-项目文档:
-  /home/hanchang/project_{name}/
-  experiment_log.md, hypothesis_log.md, commit_log.md
-
-git log:
-  git -C {仓库路径} log --oneline -10
-
-运行日志:
-  /home/hanchang/project_{name}/logs/
-
-MEMORY.md:
-  /root/.claude/projects/-home-hanchang/memory/MEMORY.md
+recall knowledge:  /root/.local/share/claude/recall/hanchang/knowledge/index.md
+MEMORY.md:         /root/.claude/projects/-home-hanchang/memory/MEMORY.md
+项目文档:          /home/hanchang/project_{name}/
+git log:           git -C {仓库路径} log --oneline -10
+运行日志:          /home/hanchang/project_{name}/logs/
 ```
