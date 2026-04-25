@@ -436,6 +436,7 @@ tool calls 计数（心算）：
 | 从错误的仓库 push 导致 author 错误 | 明确 push 仓库路径和 author 配置（子类 ENVIRONMENT 指定） |
 | 未覆盖 baseline 回归就认为修复完成 | Phase 3 始终同时跑 fix 路径 + baseline 回归 |
 | 多假设串行调查 | Phase 1 并行，互不阻塞 |
+| "待验证假说"放入 KNOWN_FACTS | KNOWN_FACTS 只收录有代码行号或实验数据的已验证事实；"待验证"的放 TODO [调查] item，附验证方法（来源：fp8-tp2 任务 F14 案例） |
 
 ---
 
@@ -459,3 +460,4 @@ tool calls 计数（心算）：
 |------|---------|---------|
 | 2026-04-23 | step35-flash（v2） | 初始版本，基于 MoE/SwigluStep/TP/FP8 任务经验 |
 | 2026-04-25 | step35-flash（v3） | 应用继承模型，去除任务特有内容，通用化 |
+| 2026-04-25 | fp8-tp2-inference（PC-1） | 反模式：待验证假说不应放入 KNOWN_FACTS |
