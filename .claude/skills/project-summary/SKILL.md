@@ -15,9 +15,31 @@ description: |
 
 ---
 
+## 强制原则：执行任务必须使用 Agent Team
+
+**所有涉及代码调试、实验运行、修复实施的任务，必须通过 agent-team 执行。不允许单 Claude 直接跑实验或改代码。**
+
+理由：
+- Agent team 提供并行调查、独立 reviewer、明确的 Phase 0→1→2→3 门控
+- 结论有 teammate 进度文件作为证据链，不依赖单次对话记忆
+- Reviewer agent 独立验证根因，防止错误假说直接进入 fix
+
+**标准工作流程（每次任务）**：
+
+```
+Step 1: instantiate project-summary  →  生成 TASK_TEMPLATE.md
+Step 2: instantiate agent-team       →  生成 TEAM_CONFIG.md（引用 TASK_TEMPLATE 共享字段）
+Step 3: agent-team 执行              →  Phase 0（baseline）→ Phase 1（并行调查）→ Phase 2（实施）→ Phase 3（验证）
+Step 4: project-summary 整理         →  用 teammate progress 作为 experiment_log，输出 01-04 文档
+Step 5: Promote                      →  两个 skill 各自执行 Promote workflow
+```
+
+**跳过 agent-team 的唯一允许情况**：预计 <10 tool calls 的纯文档整理或参数查询。
+
+---
+
 ## 与 agent-team 的集成
 
-project-summary（记录）通常与 agent-team（执行）同时使用。
 详见 [SKILLS_INDEX.md](../../SKILLS_INDEX.md)，核心要点：
 
 - **先 instantiate 本 skill**，生成 `TASK_TEMPLATE.md`（参数 schema、指标、已知事实）
