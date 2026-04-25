@@ -48,8 +48,9 @@ GOAL:       {一句话，可量化}
 -->
 
 ```
-# 运行前置（如特殊 cd 要求、virtualenv 激活）
-{如：cd /tmp && /opt/venv/bin/python（避免 namespace 问题）}
+# 运行前置（如特殊 cd 要求、virtualenv 激活、环境变量）
+{如：cd /tmp && /opt/venv/bin/python
+ 原因：{说明为什么需要这个前置步骤}}
 
 # 资源设置（GPU、内存、并发限制）
 {如：CUDA_VISIBLE_DEVICES=0,1（避开 GPU5，~700ms/tensor 硬件异常）}

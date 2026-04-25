@@ -1,7 +1,15 @@
 ================================================================================
 # Agent Team Template — 复杂开发任务通用模板
 # 版本：v3（基于 MoE修复 + SwigluStep + TP调试 + FP8 + session管理 五次任务经验提炼）
-# Skill 入口：/home/hanchang/agent_skill/.claude/skills/agent-team/SKILL.md
+#
+# ⚠️  此文件已被 Skills 系统取代，保留仅供参考。
+#
+# 当前可调用版本：
+#   父类（通用）：.claude/skills/agent-team/SKILL.md
+#   子类骨架：    .claude/skills/agent-team/TEAM_INSTANCE_TEMPLATE.md
+#   技能索引：    SKILLS_INDEX.md
+#
+# 与 project-summary skill 的关系，见：SKILLS_INDEX.md §组合使用
 ================================================================================
 
 ## 一、何时使用 Agent Team

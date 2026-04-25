@@ -30,6 +30,18 @@ SKILL.md (父类 — 通用 agent team 框架)
 
 ---
 
+## 与 project-summary 的集成
+
+agent-team（执行）通常与 project-summary（记录）同时使用。
+详见 [SKILLS_INDEX.md](../../SKILLS_INDEX.md)，核心要点：
+
+- **先 instantiate project-summary**，生成 `TASK_TEMPLATE.md`（参数 schema、指标、已知事实）
+- **再 instantiate agent-team**，生成 `TEAM_CONFIG.md`，从 TASK_TEMPLATE.md 引用共享字段
+- teammate progress 文件即为 project-summary 的 experiment_log，**无需另外维护**
+- 任务结束后，两个 skill 各自执行 Promote workflow
+
+---
+
 ## Workflow 0：决策 — 是否使用 Agent Team？
 
 **适合：**

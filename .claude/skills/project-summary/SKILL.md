@@ -15,6 +15,18 @@ description: |
 
 ---
 
+## 与 agent-team 的集成
+
+project-summary（记录）通常与 agent-team（执行）同时使用。
+详见 [SKILLS_INDEX.md](../../SKILLS_INDEX.md)，核心要点：
+
+- **先 instantiate 本 skill**，生成 `TASK_TEMPLATE.md`（参数 schema、指标、已知事实）
+- agent-team 的 `TEAM_CONFIG.md` 从 `TASK_TEMPLATE.md` 引用共享字段，**不重复填写**
+- 使用 agent-team 时，teammate progress 文件即为 experiment_log，**无需另外维护**
+- 任务结束后，用本 skill 的写作结构整理 01-04 文档
+
+---
+
 ## 继承模型
 
 ```
