@@ -16,6 +16,39 @@ description: |
 
 ---
 
+## 0. 铁则（最高优先级，违反即取消本次 agent-team）
+
+### 0.1 主 agent（Lead）不执行任何具体工作
+
+Lead **只做**这四类动作：
+- 决策（采纳哪条方案 / 派谁 / 是否进入下一 Phase）
+- 写协调文档（TEAM_CONFIG / WAVE_CLOSE / todo / 简短的用户汇报）
+- 派 teammate（通过 Agent tool）
+- 读状态（`ls` / `git status` / `git diff` / 读自己写的协调文档）
+
+**Lead 严禁**：
+- Bash 调研（`python -c "import X"` 验证环境 / `find` / `grep` 搜代码 / `head` / `cat` 看脚本内容 / 跑任何业务命令）
+- Read 长源码文件做内容分析（区别于读 TEAM_CONFIG / WAVE_CLOSE 这种自己写的协调文档）
+- 跑 GPU / 跑 verify 脚本 / 跑 baseline / 分析 log
+- 写新的源码 / verify 脚本（任何文档之外的代码必须派 teammate）
+
+**Lead 例外允许**：
+- 5–15 行内的 trivial patch 自己 Edit（写 30 行 teammate prompt 派单 overhead 比直接改更高时）
+- 无副作用的状态查询命令：`ls` / `git status` / `git diff` / `git log --oneline -10`
+
+**任何调研 / 验证 / 执行类动作 → 派 teammate（哪怕只是 1 个 Bash 调用）。**
+
+### 0.2 Agent Team 必须并行
+
+启动 agent team 后：
+
+- **Phase 1 必须同时派 ≥2 个 teammate**（在同一个 message 里发出多个 Agent tool call）
+- **串行派单**（一个 teammate 等另一个 teammate 完成才派下一个）= 反模式，等同于没用 agent-team
+- 如确实有依赖关系必须串行，**先向用户说明依赖原因 + 拿到明确 override 再执行**
+- 单 teammate 任务直接单上下文做，不要走 agent-team 流程
+
+---
+
 ## 继承模型
 
 ```
@@ -177,9 +210,10 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 - 目的：确认起始状态，决定 Phase 1 重点
 - 输出：`DOC_DIR/baseline_result.md`
 
-**Phase 1（并行调查，最多 3 个 teammate 同时）：**
+**Phase 1（并行调查，**强制 ≥2 个 teammate 同 message 并行**，建议上限 5）：**
 - 每个 teammate 1-3 个 item
 - 输出：`WORK_DIR/progress/teammate-{N}.md` + `WORK_DIR/proposed_fix_{item}.md`
+- 违反 §0.2 = 反模式
 
 **Phase 2（审批后串行执行）：**
 - 每个修复 lead 审批通过后才能实施
@@ -191,6 +225,9 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 ---
 
 ## Lead 行为规则（父类）
+
+> **前置：先满足 §0.1（Lead 不执行具体工作）和 §0.2（必须并行）。**
+> 本节只描述 Lead 在"决策 + 协调 + 派单 + 读状态"边界内的具体动作。
 
 ### 启动 teammate 时传入（缺一不可）
 1. 编号：`你是 teammate-{N}`
@@ -437,6 +474,9 @@ tool calls 计数（心算）：
 | 未覆盖 baseline 回归就认为修复完成 | Phase 3 始终同时跑 fix 路径 + baseline 回归 |
 | 多假设串行调查 | Phase 1 并行，互不阻塞 |
 | "待验证假说"放入 KNOWN_FACTS | KNOWN_FACTS 只收录有代码行号或实验数据的已验证事实；"待验证"的放 TODO [调查] item，附验证方法（来源：fp8-tp2 任务 F14 案例） |
+| Lead 自己跑 Bash 调研 / 读源码分析 / 跑业务命令 | 派 teammate（违反 §0.1） |
+| Lead 串行派 teammate（一个等一个完成） | 同 message 里发 ≥2 个 Agent tool call 并行（违反 §0.2） |
+| 单 teammate 任务也走 agent-team 流程 | 直接单上下文做完，不要走 agent-team 框架 |
 
 ---
 
@@ -461,3 +501,4 @@ tool calls 计数（心算）：
 | 2026-04-23 | step35-flash（v2） | 初始版本，基于 MoE/SwigluStep/TP/FP8 任务经验 |
 | 2026-04-25 | step35-flash（v3） | 应用继承模型，去除任务特有内容，通用化 |
 | 2026-04-25 | fp8-tp2-inference（PC-1） | 反模式：待验证假说不应放入 KNOWN_FACTS |
+| 2026-04-30 | 用户原则强化 | 新增 §0 铁则：Lead 不执行具体工作 + agent team 必须并行；反模式表新增 3 条对应项；Lead 行为规则 / Phase 1 加交叉引用 |
