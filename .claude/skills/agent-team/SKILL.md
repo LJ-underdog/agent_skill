@@ -219,8 +219,17 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 - 每个修复 lead 审批通过后才能实施
 - 实施前备份 diff
 
-**Phase 3（验证，可并行）：**
-- 必须同时跑：fix 路径验证 + baseline 回归
+**Phase 3（实施 — 同 message 并行派 ≥2 角色）：**
+- (a) #IMPL teammate：跑实施
+- (b) #VRF-PREP teammate：独立写 `VRF_CHECKLIST.md`（PR-merge 后视角，命令 copy-paste 可执行）
+- 两者**不可同一人**（避免 implementer 视角盲点）；违反 §0.2
+- envelope 协议：若 Phase 2 决策表 user-approved 子集（非全部），lead 必须把 envelope 写成 ID 列表放入 `lead_progress.md`，#IMPL prompt 列 ✓/✗（详见 §Lead 行为规则 — Envelope 协议）
+
+**Phase 4（验证 — 同 message 并行派 ≥2 角色）：**
+- (a) 机械 VRF teammate：按 `VRF_CHECKLIST.md` 跑命令 → `VRF_REPORT.md`；只跑可被命令判 Pass/Fail 的检查项
+- (b) 内容 reviewer teammate：审 commit message 质量（单一职责 / Item ID 关联 / author 正确）+ PR_BODY ↔ diff 一致性 + **范围严格性**（envelope 内每个 ✗ 项零泄漏）+ 实施忠实度（spec 字面 vs 实际）+ 副作用 spot check → `REVIEW_PR_CONTENT.md`
+- 必须同时跑：fix 路径验证 + baseline 回归（保留原条款）
+- 两 teammate 同 message 并行派出，**禁止串行**（违反 §0.2）
 
 ---
 
@@ -247,11 +256,26 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 - [ ] 有实验数值或代码阅读证据（非推断）
 - [ ] 有回归测试计划（说明如何验证基线不退化）
 - [ ] proposed_fix 写在独立文件 `proposed_fix_{item}.md`（不共用）
+- [ ] 引用的 KNOWN_FACTS 条目均经独立来源校验（实测命令 / 一手文档 / 代码行号），无引用其他 KF 或二手包（PC-A）
+- [ ] rename / move / 拍平类操作含"双向引用同步"子任务，VRF 命令覆盖被改路径的双方向（PC-B）
 
 缺任何一条 → 不批准，加调查 item 补充。
 
+### Envelope 协议（Phase 2 决策表 → Phase 3 实施）
+
+当 Phase 2 综合产出的决策项 >3 且 user approve 子集（非全部）时：
+1. Lead 把 envelope 写成"D-N envelope = {ID 列表}"放入 `lead_progress.md` wave 起始
+2. 派 #IMPL teammate prompt 必须列：(a) envelope 全集（带 ✓） + (b) 未 approve 项（带 ✗，禁止泄漏）
+3. Phase 4 内容 reviewer 必须有"D-N 范围严格性"独立审查项，命令式核对每个 ✗ 项（git grep / git diff 子串）
+
 ### 存档规律
 每处理 2 个 teammate 后写一次 `DOC_DIR/lead_progress.md`。
+
+### 每 wave 必须包含的角色（PC-C / PC-E）
+
+- 实施 wave（Phase 3）：implementer + 独立 VRF-PREP（PC-E）
+- 验证 wave（Phase 4）：机械 VRF + 内容 reviewer（PC-C）
+- 同 wave 多角色必须同 message 并行派出（§0.2 适用所有 phase，不只 Phase 1）
 
 ---
 
@@ -477,6 +501,11 @@ tool calls 计数（心算）：
 | Lead 自己跑 Bash 调研 / 读源码分析 / 跑业务命令 | 派 teammate（违反 §0.1） |
 | Lead 串行派 teammate（一个等一个完成） | 同 message 里发 ≥2 个 Agent tool call 并行（违反 §0.2） |
 | 单 teammate 任务也走 agent-team 流程 | 直接单上下文做完，不要走 agent-team 框架 |
+| reviewer 引用 KNOWN_FACTS 当 ground truth 不校验来源 | reviewer 必须独立校验 KF 来源（实测命令 / 一手文档 / 代码行号），缺则标 `[KF-AUDIT]` finding（来源：ps-review PC-A，dc-t4-review.md:50 → 40 卡跨任务传染）|
+| `git mv` / 拍平 / rename 后只查正向引用，不查反向引用 → 死链 | 双向 grep：`git grep <new_path>`（新位置可达） + `git grep <old_path_string>`（旧路径字符串清零或带豁免）；VRF 命令必须覆盖双方向（来源：ps-review PC-B，B-1 BLOCK MIGRATION_REPORT.md 33 处 broken）|
+| Phase 4 只跑机械 VRF（checklist 命令），无内容 reviewer | 必须 ≥2 角色：(a) 机械 VRF + (b) 内容 reviewer 并行派；机械层漏抓的语义/范围/质量问题由 reviewer 兜底（来源：ps-review PC-C，6 Pass + 1 BLOCK 同时存在）|
+| 用户 approve 决策表子集后，#IMPL 自由发挥 / reviewer 不独立验证范围严格性 | Lead 写 envelope 列表 → #IMPL prompt 列✓/✗ → reviewer 独立核对每个 ✗ 项零泄漏（来源：ps-review PC-D，D-1 envelope 模式）|
+| VRF checklist 由 #IMPL teammate 自己写（或 lead 写）| 同 wave 并行派独立 #VRF-PREP teammate；implementer 自检不能替代独立 VRF 设计（来源：ps-review PC-E，wave 2 teammate-5/6 并行设计）|
 
 ---
 
@@ -502,3 +531,4 @@ tool calls 计数（心算）：
 | 2026-04-25 | step35-flash（v3） | 应用继承模型，去除任务特有内容，通用化 |
 | 2026-04-25 | fp8-tp2-inference（PC-1） | 反模式：待验证假说不应放入 KNOWN_FACTS |
 | 2026-04-30 | 用户原则强化 | 新增 §0 铁则：Lead 不执行具体工作 + agent team 必须并行；反模式表新增 3 条对应项；Lead 行为规则 / Phase 1 加交叉引用 |
+| 2026-04-30 | ps-review（PC-A..E） | 5 PC：KF 来源校验门 / 反向引用双向 grep / Phase 4 双角色 / D-N envelope / VRF-PREP 独立角色；反模式表 +5、审批门 +2、Phase 3-4 改写、Lead 规则 + envelope 协议、存档规律 + 角色配置 |
