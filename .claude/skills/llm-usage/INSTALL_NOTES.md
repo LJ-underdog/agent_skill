@@ -105,8 +105,67 @@ python3 ~/.claude/skills/llm-usage/llm_usage.py --start 2026-05-07 --end 2026-05
 python3 ~/.claude/skills/llm-usage/llm_usage.py --json
 ```
 
+## --auto-segment（wave 3 新增）
+
+绕开 `totalRequests=10000` 响应级 cap：把 `[start, end)` 自动切成多个短段（默认每段 6 天）逐段查询；任何段命中 cap 自动二分递归到 1 天粒度；最后按 `(service, model)` 累加。
+
+### 用法
+
+```bash
+# 30 天精确聚合（默认 6 天/段）
+AMD_LLM_GATEWAY_KEY=<key> python3 ~/.claude/skills/llm-usage/llm_usage.py \
+  --auto-segment --start 2026-04-08 --end 2026-05-07
+
+# 调短段长（用量大时建议 3 天/段，控制每段 reqs < cap）
+... --auto-segment --start ... --end ... --segment-days 3
+
+# 聚合后的 JSON（含 `_aggregation` 元数据：每段 start/end/reqs/cap_triggered/depth）
+... --auto-segment --json --start ... --end ...
+```
+
+约束：`--auto-segment` 只接受 `YYYY-MM-DD` 形式的 `--start/--end`（按 UTC 解释）；`--segment-days` 须在 `[1, 7]`；不带 `--auto-segment` 时行为完全不变（兼容旧调用）。
+
+### 实测精确数对比（30 天窗口 2026-04-08 → 2026-05-07）
+
+| 指标 | 单次查询（旧） | --auto-segment（精确） | 差额 |
+|---|---:|---:|---:|
+| `totalRequests` | 10,000（CAP 截断） | **12,643** | **+2,643（+26.4%）** |
+| `totalTokens` | 2,301,429,390 | **2,519,890,615** | **+218,461,225（+9.5%）** |
+| `approxChargeInUSD` | $1,215.88（截断） | **$1,535.70** | **+$319.82（+26.3%）** |
+| API 调用数 | 1 | 5（无递归触发） | +4 |
+
+按 model 明细差异最大的是 **Opus-4.7**：单次查询 1,696 reqs / $177.30，auto-segment 4,339 reqs / $497.13。Sonnet-4.6 / Opus-4.6 / Haiku-4.5 三者两种模式数字一致，**说明 cap 在响应级按时间顺序截断，截断点正好落在 Opus-4.7 调用密集的窗口内**（4/26 之后大量 Opus-4.7 调用未被纳入单次查询的 10000 桶）。
+
+### 错误处理
+
+- 某段返回 V6（HTTP 404 + "Not found any usage"）→ 该段 reqs/usd/tokens=0，不算失败
+- 某段返回 DBNull / Gateway 路由 404 / 真实 5xx → 整个聚合任务 fail（exit 4），错误信息含触发段
+- `--segment-days` 超出 `[1,7]` 或 `--start >= --end` → exit 2
+
+### 何时用
+
+- 怀疑被 10000-cap 截断（单次查询返回的 `totalRequests` 正好等于 10000，明细和 USD 也按比例打折）
+- 需要月报 / 季报级别的精确数字（accounting / 报销 / 内部 charge-back）
+- 需要拿到聚合 JSON 做后续分析（`--json` 输出含 `_aggregation.segments` 元数据，每段都可追溯）
+
+不需要用：单次查询返回 `totalRequests < 10000` 的窗口（数据完整，加段反而多调 API）。
+
+### Wave 3 验证
+
+| 项 | 结果 |
+|---|---|
+| 离线 unit test | 14/14 PASS（`/tmp/agent_team/llm-usage-skill/test_auto_segment.py`，无真实 HTTP，mock fetch 覆盖切段+递归+no-usage+硬错误） |
+| 端到端非 `--auto-segment` | 30 天窗口 → 10000 reqs / $1215.88（与 wave 1 V9 cap 实测一致，向后兼容 OK） |
+| 端到端 `--auto-segment` | 30 天窗口 → 12,643 reqs / $1,535.70 / 2.52B tokens（与 wave 2 teammate-3 聚合脚本数字 byte-identical） |
+| 4 模型明细 | 全部匹配 wave 2 teammate-3 §4 表 |
+| 调用次数 | 5（5 段，无 cap 触发，无递归） |
+
 ## Progress 索引（ephemeral，重启后失效）
 
-- `/tmp/agent_team/llm-usage-skill/progress/teammate-1.md` — 实现细节 + 离线自测结果
-- `/tmp/agent_team/llm-usage-skill/progress/teammate-2.md` — 环境检查 + V1-V10 完整清单
-- `/tmp/agent_team/llm-usage-skill/test_llm_usage.py` — 21 项 self-test 脚本
+- `/tmp/agent_team/llm-usage-skill/progress/teammate-1.md` — wave 1 实现细节 + 离线自测结果
+- `/tmp/agent_team/llm-usage-skill/progress/teammate-2.md` — wave 1 环境检查 + V1-V10 完整清单
+- `/tmp/agent_team/llm-usage-skill/progress/teammate-3.md` — wave 2 30 天精确聚合（aggregate.py 原始实现）
+- `/tmp/agent_team/llm-usage-skill/progress/teammate-4.md` — wave 2 git push 操作记录
+- `/tmp/agent_team/llm-usage-skill/progress/teammate-6.md` — wave 3 --auto-segment 实现 + 验证 + push（本次）
+- `/tmp/agent_team/llm-usage-skill/test_llm_usage.py` — wave 1 21 项 self-test
+- `/tmp/agent_team/llm-usage-skill/test_auto_segment.py` — wave 3 14 项 self-test（无 HTTP）
