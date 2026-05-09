@@ -52,14 +52,23 @@ Lead **只做**这四类动作：
 ## 继承模型
 
 ```
-SKILL.md (父类 — 通用 agent team 框架)
-  └── TEAM_INSTANCE_TEMPLATE.md (子类骨架)
-        └── project_{name}/TEAM_CONFIG.md (子类实例 — 任务特化)
-                ↓ [任务结束后 Promote]
-        SKILL.md (父类更新)
+SKILL.md (父类 — 通用框架 + Workflow 0.5 模板选择器)
+  ├── templates/dev-debug.md             ← 标准开发/调试/复现-修-验证
+  ├── templates/doc-edit.md              ← 文档批量编辑/审计
+  ├── templates/status-consolidation.md  ← handoff/wave close/freeze 总结
+  └── templates/ci-investigation.md      ← CI/log forensics/PR 失败排查
+        └── (instantiate 时) TEAM_INSTANCE_TEMPLATE.md (子类骨架)
+              └── project_{name}/TEAM_CONFIG.md (子类实例 — 任务特化)
+                      ↓ [任务结束后 Promote]
+              SKILL.md (父类更新) / templates/*.md (模板更新)
 ```
 
-子类只填写任务特有部分（ENVIRONMENT、BASELINE、KNOWN_FACTS 等）；父类的 Lead 行为规则、Teammate prompt 结构、审批门、todo 格式自动适用，不在子类重复。
+三层继承：
+1. **父类 SKILL.md**（本文件）— 通用框架：§0 铁则、Workflow 0/0.5/1/2/3、Lead 行为规则、Teammate Prompt 共通骨架、TODO 格式、文档管理规则、§反模式表通用条
+2. **特化模板 templates/*.md** — 任务类型特化：Phase plan、teammate 数量与角色分工、Specialized Prompt Body、特化 Item 类型、特化反模式
+3. **子类实例 project_{name}/TEAM_CONFIG.md** — 单次任务特化：ENVIRONMENT、BASELINE、KNOWN_FACTS、本任务 todo
+
+子类只填写任务特有部分；父类的 Lead 行为规则、Teammate prompt 共通骨架、审批门、todo 格式自动适用，不在子类重复。模板覆盖父类的 Phase 结构 / 特化 prompt 体 / 特化反模式，但 §0 铁则、Workflow 1/2/3、Lead 行为规则等父类节**自动继承**，模板不可绕过。
 
 ---
 
@@ -91,6 +100,46 @@ agent-team（执行）通常与 project-summary（记录）同时使用。
 - 复杂进程/全局状态需要单一控制者
 
 **判断后如不适合，直接单 Claude 完成，不要强行用 Agent Team。**
+
+---
+
+## Workflow 0.5：选择特化模板
+
+通过 Workflow 0 决定使用 agent-team 后，按任务类型选择 `templates/` 下的特化模板。
+每个模板覆盖父类 SKILL.md 的"阶段结构 / Item 类型 / 验证顺序 / Specialized Antipatterns"等节，
+但父类 §0 铁则、继承模型、Workflow 1/2/3、Lead 行为规则、§反模式表通用条 自动适用。
+
+### 模板对照表
+
+| 模板 | 适用任务 | Phase plan 简述 | 推荐 teammate 数 |
+|---|---|---|---|
+| `templates/dev-debug.md` | 开发 / 调试 / 复现-修-验证 | Phase 0 baseline → 1 调查 → 2 fix → 3 验证 | 4-7 |
+| `templates/doc-edit.md` | 文档批量编辑 / 审计 | Skip 0 → 1 audit → 2 并行 edit → 3 review → 4 commit | 5-7 |
+| `templates/status-consolidation.md` | handoff / wave close / freeze | Skip 0 → 1 并行 read → 2 synthesize → 3 review | 3-4 |
+| `templates/ci-investigation.md` | CI / log forensics / PR fail | Phase 0 拉 log → 1 并行分析 → 2 报告（无 fix） | 3-4 |
+
+### 选择决策树
+
+```
+任务是改源码 / 跑测试 / debug crash？
+  ├─ Yes → templates/dev-debug.md
+  └─ No
+      ├─ 任务是改多个 markdown 文件？        → templates/doc-edit.md
+      ├─ 任务是从 progress / log 汇总状态？ → templates/status-consolidation.md
+      ├─ 任务是查 CI / Actions 失败？        → templates/ci-investigation.md
+      └─ 都不匹配                            → fallback templates/dev-debug.md（最通用）
+```
+
+### Instantiate 时使用模板
+
+在 `project_{name}/TEAM_CONFIG.md` 顶部声明：
+
+```markdown
+## Template
+继承自：`templates/<name>.md`
+```
+
+Lead 派 teammate 时按 `templates/<name>.md` 的 §3 Specialized Teammate Prompt Body 取 prompt 段，与父类 SKILL.md 的 Teammate Prompt 共通骨架（编号 / WORK_DIR / DOC_DIR / 铁则 / Context 保护 / 收尾流程 / Progress 格式）拼装成完整 prompt。
 
 ---
 
@@ -198,38 +247,18 @@ touch project_{name}/todo.md
 
 ---
 
-## 阶段结构（父类强制）
+## 阶段结构
 
-```
-Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─→ Phase 2 ─串行─→ Phase 3
-[baseline]       [分析]     [调查]           [审批]     [实施]           [验证]
-```
+阶段结构由 Workflow 0.5 选定的特化模板定义，参见 `templates/<name>.md` §1 Phase Plan。
 
-**Phase 0（必须先跑，不可跳过）：**
-- 串行完成：运行当前系统 → 记录 crash traceback 或通过结果
-- 目的：确认起始状态，决定 Phase 1 重点
-- 输出：`DOC_DIR/baseline_result.md`
+**所有模板共享的父类约束（无论 Phase 编号 / 是否 SKIP Phase 0）：**
+- 任何"并行"Phase 必须在同 message 派 ≥2 个 teammate（违反 §0.2 = 反模式）
+- 每个 teammate 1-3 个 item，建议 teammate 上限 5（context 保护）
+- 每个 teammate 输出 `WORK_DIR/progress/teammate-{N}.md`
+- 涉及代码修改的 Phase 必须经过 Lead 审批门（见下文 §代码修改审批门）
+- 验证类 Phase 必须同时跑 fix 路径 + baseline 回归（适用模板：dev-debug；其他模板按各自定义）
 
-**Phase 1（并行调查，**强制 ≥2 个 teammate 同 message 并行**，建议上限 5）：**
-- 每个 teammate 1-3 个 item
-- 输出：`WORK_DIR/progress/teammate-{N}.md` + `WORK_DIR/proposed_fix_{item}.md`
-- 违反 §0.2 = 反模式
-
-**Phase 2（审批后串行执行）：**
-- 每个修复 lead 审批通过后才能实施
-- 实施前备份 diff
-
-**Phase 3（实施 — 同 message 并行派 ≥2 角色）：**
-- (a) #IMPL teammate：跑实施
-- (b) #VRF-PREP teammate：独立写 `VRF_CHECKLIST.md`（PR-merge 后视角，命令 copy-paste 可执行）
-- 两者**不可同一人**（避免 implementer 视角盲点）；违反 §0.2
-- envelope 协议：若 Phase 2 决策表 user-approved 子集（非全部），lead 必须把 envelope 写成 ID 列表放入 `lead_progress.md`，#IMPL prompt 列 ✓/✗（详见 §Lead 行为规则 — Envelope 协议）
-
-**Phase 4（验证 — 同 message 并行派 ≥2 角色）：**
-- (a) 机械 VRF teammate：按 `VRF_CHECKLIST.md` 跑命令 → `VRF_REPORT.md`；只跑可被命令判 Pass/Fail 的检查项
-- (b) 内容 reviewer teammate：审 commit message 质量（单一职责 / Item ID 关联 / author 正确）+ PR_BODY ↔ diff 一致性 + **范围严格性**（envelope 内每个 ✗ 项零泄漏）+ 实施忠实度（spec 字面 vs 实际）+ 副作用 spot check → `REVIEW_PR_CONTENT.md`
-- 必须同时跑：fix 路径验证 + baseline 回归（保留原条款）
-- 两 teammate 同 message 并行派出，**禁止串行**（违反 §0.2）
+具体 Phase 数量、串/并行规则、产出物 schema、决策门 → 由模板覆盖。
 
 ---
 
@@ -256,30 +285,23 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 - [ ] 有实验数值或代码阅读证据（非推断）
 - [ ] 有回归测试计划（说明如何验证基线不退化）
 - [ ] proposed_fix 写在独立文件 `proposed_fix_{item}.md`（不共用）
-- [ ] 引用的 KNOWN_FACTS 条目均经独立来源校验（实测命令 / 一手文档 / 代码行号），无引用其他 KF 或二手包（PC-A）
-- [ ] rename / move / 拍平类操作含"双向引用同步"子任务，VRF 命令覆盖被改路径的双方向（PC-B）
 
 缺任何一条 → 不批准，加调查 item 补充。
-
-### Envelope 协议（Phase 2 决策表 → Phase 3 实施）
-
-当 Phase 2 综合产出的决策项 >3 且 user approve 子集（非全部）时：
-1. Lead 把 envelope 写成"D-N envelope = {ID 列表}"放入 `lead_progress.md` wave 起始
-2. 派 #IMPL teammate prompt 必须列：(a) envelope 全集（带 ✓） + (b) 未 approve 项（带 ✗，禁止泄漏）
-3. Phase 4 内容 reviewer 必须有"D-N 范围严格性"独立审查项，命令式核对每个 ✗ 项（git grep / git diff 子串）
 
 ### 存档规律
 每处理 2 个 teammate 后写一次 `DOC_DIR/lead_progress.md`。
 
-### 每 wave 必须包含的角色（PC-C / PC-E）
-
-- 实施 wave（Phase 3）：implementer + 独立 VRF-PREP（PC-E）
-- 验证 wave（Phase 4）：机械 VRF + 内容 reviewer（PC-C）
-- 同 wave 多角色必须同 message 并行派出（§0.2 适用所有 phase，不只 Phase 1）
-
 ---
 
-## Teammate Prompt 模板（父类固定部分）
+## Teammate Prompt 模板（父类共通骨架）
+
+本节是**所有特化模板共享**的 prompt 共通骨架，包含：编号 / WORK_DIR / DOC_DIR / 铁则 / Context 保护 / 收尾流程 / Progress 文件格式 / 代码修改规则。
+特化部分（BASELINE / 验证顺序 / 调研 vs 执行 / 任务专属红线 / 输出 schema）由 Workflow 0.5 选定的特化模板的 §3 Specialized Teammate Prompt Body 提供。
+
+Lead 派 teammate 时按以下顺序拼装完整 prompt：
+1. 本节共通骨架（替换 `{占位符}`）
+2. + 特化模板 §3 Specialized Teammate Prompt Body
+3. + 子类 TEAM_CONFIG.md 的 ENVIRONMENT / KNOWN_FACTS / 本次分配 item
 
 子类实例生成完整 prompt 时，将 `{占位符}` 替换为 TEAM_CONFIG.md 中的对应字段。
 
@@ -322,12 +344,12 @@ progress 文件里"结论"和"【未验证假设】"必须分开写，绝不混�
 
 ---
 
-## 验证顺序（debugging 类任务）
+## 验证顺序
 
-1. **最小复现**：先写最小脚本隔离问题，确认 bug 可单独复现
-2. **中间值验证**：断言根因前，直接打印/检查中间状态（canary 或 assert）
-3. **组件级验证**：验证单个组件正确性，不只看端到端结果
-4. **端到端验证**：最后跑完整流程，同时跑基线回归
+验证顺序由 Workflow 0.5 选定的特化模板定义，参见 `templates/<name>.md` §5 Specialized Tools / Verification。
+- `templates/dev-debug.md` — 4 步：最小复现 → 中间值 → 组件级 → 端到端 + baseline 回归
+- `templates/ci-investigation.md` — web 工具优先级（curl raw log > WebFetch markdown）
+- `templates/doc-edit.md` / `templates/status-consolidation.md` — 由模板各自定义（无 dev 类验证序）
 
 {TASK_SPECIFIC_VERIFICATION}
   ← 从 TEAM_CONFIG.md 的 TASK_SPECIFIC_VERIFICATION 节展开
@@ -465,11 +487,18 @@ tool calls 计数（心算）：
 
 ## Item 类型说明
 
-| 类型 | 说明 | 输出 | 允许的工具 |
-|------|------|------|-----------|
-| `[调查]` | 读代码/最小复现/中间值检测 | progress + proposed_fix_{item}.md | Read, Grep, Bash（只读或最小脚本） |
-| `[执行]` | 修改代码/写文件 | progress + patch 备份 | Edit, Bash（需 lead 批准） |
-| `[验证]` | 完整测试矩阵 | progress + DOC_DIR/04_verification.md | Bash |
+父类提供通用 3 类（`[调查]` / `[执行]` / `[验证]`），由 dev-debug 模板使用。其他模板可定义自己的 Item 类型集（详见各模板 §4 Item Types）。
+
+| 类型 | 说明 | 输出 | 允许的工具 | 主要使用模板 |
+|------|------|------|-----------|------------|
+| `[调查]` | 读代码 / 最小复现 / 中间值检测 | progress + proposed_fix_{item}.md | Read, Grep, Bash（只读或最小脚本） | dev-debug |
+| `[执行]` | 修改代码 / 写文件 | progress + patch 备份 | Edit, Bash（需 lead 批准） | dev-debug, doc-edit |
+| `[验证]` | 完整测试矩阵 | progress + DOC_DIR/04_verification.md | Bash | dev-debug |
+| `[审计]` / `[编辑]` / `[评审]` | 文档审计、编辑、跨片一致性评审 | 详见 doc-edit 模板 §4 | Read, Grep, Edit | doc-edit |
+| `[拉日志]` / `[分析]` / `[实证]` / `[报告]` | CI raw log 取证、依赖归属实证、报告写作 | 详见 ci-investigation 模板 §4 | Bash (curl), Read, Grep, WebFetch | ci-investigation |
+| `[读]` / `[综合]` / `[评审]` | 多源 progress 摘录、综合 handoff、reviewer | 详见 status-consolidation 模板 §4 | Read, Grep | status-consolidation |
+
+**模板可新增或屏蔽 Item 类型**，但所有模板都默认继承 `[调查]` / `[执行]` / `[验证]` 三类（除非模板 §4 显式覆盖）。
 
 ---
 
@@ -485,27 +514,21 @@ tool calls 计数（心算）：
 
 ## 反模式表（通用，父类维护）
 
+本表只维护**所有模板共享**的通用反模式。**dev-debug / doc-edit / status-consolidation / ci-investigation 模板各自的特化反模式见各 templates/<name>.md §6 Specialized Antipatterns。**
+
 | 反模式 | 正确做法 |
 |--------|---------|
-| 编译/构建缓存未完全清理就测试 | 清理所有缓存文件（构建产物 + 生成文件缺一不可） |
-| 用后台任务跑长时编译 | nohup + 轮询监控（后台任务可能被 timeout kill） |
-| 单元测试 PASS 就认为生产路径正确 | 显式用生产路径配置验证 |
-| "逻辑完整"的根因直接提修复 | 最小复现/中间值检测先验证根因 |
-| 并行 teammate 共用同一个 proposed_fix.md | 每个 item 独立文件（防并行写冲突） |
-| crash → 直接改代码 | Phase 0 先精确定位 traceback（阶段 + 完整 message） |
-| 日志/结果写临时目录 | 写持久路径（DOC_DIR） |
+| 并行 teammate 共用同一个 proposed_fix.md / 输出文件 | 每个 item 独立文件（防并行写冲突） |
+| 日志 / 结果写临时目录 | 写持久路径（DOC_DIR） |
 | 从错误的仓库 push 导致 author 错误 | 明确 push 仓库路径和 author 配置（子类 ENVIRONMENT 指定） |
-| 未覆盖 baseline 回归就认为修复完成 | Phase 3 始终同时跑 fix 路径 + baseline 回归 |
-| 多假设串行调查 | Phase 1 并行，互不阻塞 |
+| 多假设串行调查 / 串行派 teammate | 同 message 里发 ≥2 个 Agent tool call 并行（违反 §0.2） |
 | "待验证假说"放入 KNOWN_FACTS | KNOWN_FACTS 只收录有代码行号或实验数据的已验证事实；"待验证"的放 TODO [调查] item，附验证方法（来源：fp8-tp2 任务 F14 案例） |
 | Lead 自己跑 Bash 调研 / 读源码分析 / 跑业务命令 | 派 teammate（违反 §0.1） |
 | Lead 串行派 teammate（一个等一个完成） | 同 message 里发 ≥2 个 Agent tool call 并行（违反 §0.2） |
 | 单 teammate 任务也走 agent-team 流程 | 直接单上下文做完，不要走 agent-team 框架 |
-| reviewer 引用 KNOWN_FACTS 当 ground truth 不校验来源 | reviewer 必须独立校验 KF 来源（实测命令 / 一手文档 / 代码行号），缺则标 `[KF-AUDIT]` finding（来源：ps-review PC-A，dc-t4-review.md:50 → 40 卡跨任务传染）|
-| `git mv` / 拍平 / rename 后只查正向引用，不查反向引用 → 死链 | 双向 grep：`git grep <new_path>`（新位置可达） + `git grep <old_path_string>`（旧路径字符串清零或带豁免）；VRF 命令必须覆盖双方向（来源：ps-review PC-B，B-1 BLOCK MIGRATION_REPORT.md 33 处 broken）|
-| Phase 4 只跑机械 VRF（checklist 命令），无内容 reviewer | 必须 ≥2 角色：(a) 机械 VRF + (b) 内容 reviewer 并行派；机械层漏抓的语义/范围/质量问题由 reviewer 兜底（来源：ps-review PC-C，6 Pass + 1 BLOCK 同时存在）|
-| 用户 approve 决策表子集后，#IMPL 自由发挥 / reviewer 不独立验证范围严格性 | Lead 写 envelope 列表 → #IMPL prompt 列✓/✗ → reviewer 独立核对每个 ✗ 项零泄漏（来源：ps-review PC-D，D-1 envelope 模式）|
-| VRF checklist 由 #IMPL teammate 自己写（或 lead 写）| 同 wave 并行派独立 #VRF-PREP teammate；implementer 自检不能替代独立 VRF 设计（来源：ps-review PC-E，wave 2 teammate-5/6 并行设计）|
+| Workflow 0.5 不选择模板，直接套通用 SKILL.md | 必须先按决策树选 templates/<name>.md，模板覆盖父类阶段结构 / Item 类型 / Specialized Antipatterns |
+| 把模板特化反模式（如 dev-debug 的"crash 直接改代码"）当父类规则 | 特化反模式在各 templates/<name>.md §6；父类只管通用条 |
+| Reviewer raise"致命"问题时盲信其妥协方案 | reviewer 视角 = 找最低执行成本；lead 视角 = 对齐用户真实任务目标。raise 多半是 task 方向修正信号，lead 应主动认错 / 派新 teammate 对齐目标，而不是按 reviewer 妥协方案继续跑（来源：tp2_verify_post_merge_wave 2026-05-09） |
 
 ---
 
@@ -531,4 +554,4 @@ tool calls 计数（心算）：
 | 2026-04-25 | step35-flash（v3） | 应用继承模型，去除任务特有内容，通用化 |
 | 2026-04-25 | fp8-tp2-inference（PC-1） | 反模式：待验证假说不应放入 KNOWN_FACTS |
 | 2026-04-30 | 用户原则强化 | 新增 §0 铁则：Lead 不执行具体工作 + agent team 必须并行；反模式表新增 3 条对应项；Lead 行为规则 / Phase 1 加交叉引用 |
-| 2026-04-30 | ps-review（PC-A..E） | 5 PC：KF 来源校验门 / 反向引用双向 grep / Phase 4 双角色 / D-N envelope / VRF-PREP 独立角色；反模式表 +5、审批门 +2、Phase 3-4 改写、Lead 规则 + envelope 协议、存档规律 + 角色配置 |
+| 2026-05-09 | agent-team-skill-specialization | 拆分父类/特化：新增 templates/{dev-debug,doc-edit,status-consolidation,ci-investigation}.md 4 个特化模板 + Workflow 0.5 选择器；从 SKILL.md 抽走 dev-debug 特化内容（阶段结构 / 验证顺序 / dev-debug 反模式 7 条），改 stub 引用 templates/<name>.md；Item 类型表扩充含模板专属类型；继承模型图升级为三层 |
