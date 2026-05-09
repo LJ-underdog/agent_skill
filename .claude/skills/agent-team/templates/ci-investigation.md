@@ -187,6 +187,18 @@ DOC_DIR  = {DOC_DIR}
 （其余流程：Context 保护规则 / 卡住处理 / 收尾流程 → 沿用父类 SKILL.md）
 ````
 
+## 来源类型优先级（必读）
+
+web research 取证时，按以下优先级取来源：
+1. 官方文档（vendor docs / framework docs / 一手 spec）
+2. 官方 engineering blog（vendor postmortem / release notes）
+3. 学术 paper（arXiv / 顶会）
+4. 框架 GitHub issue / discussion（带 maintainer 回复）
+5. 知名 postmortem 博客（厂商 / 个人 expert）
+6. 一般技术博客 / SEO 内容农场 ← 默认排除
+
+每条引用必须标 source_type；synthesizer 阶段对低 tier 来源扣权重。
+
 ---
 
 ## 4. Item Types
