@@ -318,6 +318,17 @@ mkdir -p project_{name}/{progress,logs}
 touch project_{name}/todo.md
 ```
 
+### Step 4.5：Checkpoint scan（resume 现有 wave 时 / Proposal-009）
+
+若 WORK_DIR 已存在 `progress/` 目录且非空：
+1. `ls progress/teammate-*.md` → 列已完成 teammate 编号
+2. 读 `todo.md` → 看哪些 item 标 `[x]` / `[~]` / `[ ]`
+3. 在 `TEAM_CONFIG.md` 顶部声明 `## Resume from: progress/teammate-{N}.md`
+4. 跳过已完成 teammate；从下一个未完成 phase 启动
+
+Resume wave 不重派已完成 teammate；不重读 L4 archival memory（节约启动 token）。
+依赖：Wave 1.A.0 Proposal-013 YAML front-matter（resume 起点必须有 YAML schema）+ Wave 1.B Proposal-003。
+
 ### Step 5：展示给用户确认，再启动 Lead
 
 ---
