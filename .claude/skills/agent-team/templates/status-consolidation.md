@@ -84,6 +84,15 @@ DOC_DIR  = {DOC_DIR}
 - **不替用户做决策**：发现待决策选项时列为 "待用户决策" 节，给出 (a)/(b)/(c) 选项 + 各自代价，不预选
 - **不跨 wave 持有结论**：如读到的内容已被后续 wave overrule，必须标 "已被 wave-N overrule" 而不是直接采用
 
+## 输出文件 schema（共通）
+
+**所有 teammate progress** 必须遵循父类 SKILL.md §Progress 文件格式（YAML front-matter / Trace / REQUIRED 标记）；
+本模板下列节标 `<!-- REQUIRED -->`：YAML `status` / `artifacts` / `cost.tool_calls` / `blockers`，
+正文（reader）「## 来源覆盖」/「## 关键事实」/「## Trace」，
+（synthesizer 主 handoff）「### TL;DR」/「### 证据链」/「### 待决策选项」/「### 接手 do-not-redo 列表」/「### Memory 同步动作」，
+（reviewer）「## 证据链完整性 check」/「## Findings」。
+synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatch silent fail）。
+
 ## 输出文件 schema（synthesizer 用）
 
 文件路径：`{DOC_DIR}/SESSION_HANDOFF.md` 或 `{DOC_DIR}/WAVE_{N}_CLOSE.md`

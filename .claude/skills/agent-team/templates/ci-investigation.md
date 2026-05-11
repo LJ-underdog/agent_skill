@@ -88,6 +88,14 @@ DOC_DIR  = {DOC_DIR}
 
 ## 输出文件 schema
 
+**所有 teammate progress** 必须遵循父类 SKILL.md §Progress 文件格式（YAML front-matter / Trace / REQUIRED 标记）；
+本模板下列节标 `<!-- REQUIRED -->`：YAML `status` / `artifacts`（含 raw log 路径 / WebFetch source URL）/ `cost.tool_calls` / `blockers`，
+正文（log analyzer）「## 失败 Step」/「## 短路信号过滤」/「## 证据来源」，
+（dependency verifier）「## 待验证依赖」表 + 实证 URL，
+（report writer）「## 完整证据链」/「## Fix Path 选项」/「## 用户待决策项」，
+（reviewer）「## R-{NN}」每条含 severity + 证据。
+synthesizer / reviewer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatch silent fail）。
+
 ### 角色 = log fetcher → `DOC_DIR/00_log_inventory.md`
 
 | 字段 | 内容 |

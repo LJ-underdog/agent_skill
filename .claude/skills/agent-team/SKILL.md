@@ -427,6 +427,24 @@ tool calls 计数（心算）：
 
 ## Progress 文件格式
 
+每个 progress/teammate-{N}.md 顶部**必须**以下列 YAML front-matter 开头（机读 schema），后跟正文 markdown：
+
+```
+---
+teammate_id: {N}
+status: completed | blocked | partial          # REQUIRED
+next_recommended: [teammate-X]                 # 可选；类似 LangGraph Command(goto)
+suggested_model: opus | sonnet | haiku         # 实际跑用的 model（可选）
+artifacts:                                     # REQUIRED — 每条 PASS claim 的 artifact
+  - { type: file, path: /abs/path, line: 123 }
+  - { type: cmd_output, snippet: "..." }
+  - { type: url, url: "https://..." }
+cost:
+  tool_calls: ~12                              # REQUIRED — 心算 tool calls 数
+  wall_time_min: ~8                            # 估算（可选）
+blockers: []                                   # REQUIRED — 未解决问题；空列表 = 无 blocker
+---
+
 # Teammate {N} Progress
 
 ## 接手状态
@@ -441,6 +459,28 @@ tool calls 计数（心算）：
 **【未验证假设】**（如有，与结论分开）：
 
 ## 收尾存档
+```
+
+### Trace 节（OpenTelemetry 风格，wave-level 聚合用）
+
+每个 progress 文件正文末尾**应**追加 `## Trace` 节供 wave-level 程序化聚合：
+
+```
+## Trace
+- wave_id: {从 TEAM_CONFIG.md PROJECT 字段}
+- start_ts: <ISO 8601>
+- end_ts: <ISO 8601>
+- tool_calls_by_type: {Read: x, Bash: y, WebSearch: z, ...}
+- decisions: [<决策 1 brief>, <决策 2 brief>]
+```
+
+### REQUIRED 节标记
+
+SHARED OUTPUT SKELETON 中所有以 `<!-- REQUIRED -->` HTML 注释标记的节为**必填**；
+synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或缺 YAML front-matter，
+**必须明示报告并 raise**，禁止假装拼上（防 MAST 论文「format mismatch silent fail」/ 反模式表 #12）。
+
+向后兼容：旧 progress（无 YAML front-matter）不可作为 resume 起点；lead 重启 wave 时必须手动补或弃用旧 wave。
 
 ---
 
@@ -529,6 +569,7 @@ tool calls 计数（心算）：
 | Workflow 0.5 不选择模板，直接套通用 SKILL.md | 必须先按决策树选 templates/<name>.md，模板覆盖父类阶段结构 / Item 类型 / Specialized Antipatterns |
 | 把模板特化反模式（如 dev-debug 的"crash 直接改代码"）当父类规则 | 特化反模式在各 templates/<name>.md §6；父类只管通用条 |
 | Reviewer raise"致命"问题时盲信其妥协方案 | reviewer 视角 = 找最低执行成本；lead 视角 = 对齐用户真实任务目标。raise 多半是 task 方向修正信号，lead 应主动认错 / 派新 teammate 对齐目标，而不是按 reviewer 妥协方案继续跑（来源：tp2_verify_post_merge_wave 2026-05-09） |
+| #12 Format mismatch / 无 inter-teammate schema → synthesizer 静默吃错（teammate 漏写关键节、字段名漂移、单位不一致，synthesizer 拼合时 silent fail，下游 wave 拿错信号）| 强制 YAML front-matter（status / artifacts / cost / blockers REQUIRED）+ `<!-- REQUIRED -->` 节标记；synthesizer 必须 grep REQUIRED + 校验 front-matter，缺失即 raise，禁止 silent skip（参考 MAST 论文 37% coordination breakdowns；Proposal-013 / 来源 T3-Source-4 / 5 / 6）|
 
 ---
 

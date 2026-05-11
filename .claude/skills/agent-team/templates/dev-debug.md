@@ -220,12 +220,24 @@ tool calls 计数（心算）：
 
 ## Progress 文件格式
 
+**必须**遵循父类 SKILL.md §Progress 文件格式（含 YAML front-matter / Trace / REQUIRED 标记）。
+本模板 SHARED OUTPUT SKELETON 中下列节为 REQUIRED（synthesizer 缺失即 raise）：
+
+```
+---
+teammate_id: {N}
+status: completed | blocked | partial          <!-- REQUIRED -->
+artifacts: [...]                               <!-- REQUIRED — 含 file/cmd_output/url 三选一 -->
+cost: { tool_calls: ~N }                       <!-- REQUIRED -->
+blockers: []                                   <!-- REQUIRED — 空列表 = 无 blocker -->
+---
+
 # Teammate {N} Progress
 
 ## 接手状态
 [lead 摘要 / 上一个 teammate 收尾存档]
 
-## 已完成 Items
+## 已完成 Items                                 <!-- REQUIRED -->
 
 ### [#{XXX}] 标题
 **类型**：调查型 / 执行型 / 验证型
@@ -233,7 +245,10 @@ tool calls 计数（心算）：
 **数据**：{指标值} / 文件 Y L行号 / 实验输出
 **【未验证假设】**（如有，与结论分开）：
 
-## 收尾存档
+## 收尾存档                                     <!-- REQUIRED -->
+
+## Trace                                        <!-- REQUIRED — 见父类 §Trace 节 schema -->
+```
 
 ---
 

@@ -80,6 +80,11 @@ DOC_DIR  = {DOC_DIR}
 
 ## 输出文件 schema
 
+**所有 teammate progress** 必须遵循父类 SKILL.md §Progress 文件格式（YAML front-matter / Trace / REQUIRED 标记）；
+本模板下列节标 `<!-- REQUIRED -->`：YAML `status` / `artifacts` / `cost.tool_calls` / `blockers`，
+正文「## 处理的 finding」/「## 文件 N」/「## 收尾存档」/「## Trace」。
+synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatch silent fail）。
+
 ### auditor 产出 `{DOC_DIR}/audit_findings.md`
 ```markdown
 # Audit Findings

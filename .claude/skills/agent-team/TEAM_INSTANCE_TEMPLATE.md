@@ -18,6 +18,15 @@
 
 ---
 
+## SHARED OUTPUT SKELETON 引用
+
+本子类**必须**遵守父类 SKILL.md `## Progress 文件格式`（YAML front-matter / Trace / `<!-- REQUIRED -->` 节标记）+ Workflow 0.5 选定模板的 `§3 Specialized Teammate Prompt Body` 输出 schema。
+
+每个 `progress/teammate-{N}.md` 顶部 YAML front-matter 必填字段：`status` / `artifacts` / `cost.tool_calls` / `blockers`。
+synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatch silent fail）。
+
+---
+
 ## 基础配置
 
 ```
