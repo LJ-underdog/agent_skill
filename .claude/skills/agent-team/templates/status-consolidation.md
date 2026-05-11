@@ -59,6 +59,16 @@
 
 ## 3. Specialized Teammate Prompt Body
 
+### Suggested model（继承父类 §6 Model Routing）
+
+| 角色 | suggested_model | 理由 |
+|---|---|---|
+| reader | sonnet | 多源摘录 + 行号引用，机械性工作 |
+| synthesizer | inherit (opus) | 多源综合需深推理 + 跨 wave 因果链构建 |
+| reviewer | sonnet (cross-model 推荐) | 配合 §3 Reviewer Isolated Context 原则；与主线 lead 不同模型家族 = adversarial 视角默认 |
+
+**override 协议**：lead 派 teammate 时若任务涉及高 stakes（如 freeze 关键 project / cross-wave overrule chain 复杂），可显式覆盖 reader / reviewer 为 opus；teammate progress front-matter `suggested_model` 字段记录实际跑用的 model（机读对账用）。
+
 替换父类 Teammate Prompt 模板里的 "BASELINE / 验证顺序 / 调研 vs 执行" 节为（外层用 4 反引号包裹，避免内部嵌套提前闭合）：
 
 ````

@@ -49,6 +49,17 @@ Phase 0 SKIP ─→ Phase 1 audit ─→ 决策门 ─→ Phase 2 parallel edit 
 
 ## 3. Specialized Teammate Prompt Body
 
+### Suggested model（继承父类 §6 Model Routing）
+
+| 角色 | suggested_model | 理由 |
+|---|---|---|
+| auditor | sonnet | 格式校验、grep 比对，不需 reasoning-heavy |
+| editor | sonnet | 文档 patch 不复杂，按 finding 清单 mechanical edit |
+| reviewer | sonnet (cross-model 推荐) | 异源比对 + 一致性检查；高 stakes wave 可换 opus |
+| committer | sonnet | git 操作 + link 检查 |
+
+**override 协议**：lead 派 teammate 时若任务复杂度 > 表中预设（如 cross-doc 重写而非单点修订），可在 prompt 末尾标 `suggested_model: opus` 显式覆盖；teammate progress front-matter `suggested_model` 字段记录实际跑用的 model。
+
 替换父类 Teammate Prompt 模板里的 "BASELINE / 验证顺序 / 调研 vs 执行" 节为以下特化体（外层用 4 反引号包裹，避免内部 ```markdown 嵌套时提前闭合）：
 
 ````

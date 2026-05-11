@@ -52,6 +52,18 @@ CI 调查任务**没有 fix Phase**——fix 路径选择交给调用方 lead �
 
 ## 3. Specialized Teammate Prompt Body
 
+### Suggested model（继承父类 §6 Model Routing）
+
+| 角色 | suggested_model | 理由 |
+|---|---|---|
+| log fetcher | sonnet | curl + 文件操作，无需 reasoning |
+| log analyzer | sonnet | grep + 短路信号过滤，pattern matching 类 |
+| dependency verifier | sonnet | branch_commits / web 验证，pattern matching |
+| report writer | sonnet | 汇总 + fix path 选项罗列 |
+| reviewer | sonnet (cross-model 推荐) | 证据链闭环检查；与 report writer 同 sonnet 时建议跨 model family |
+
+**override 协议**：lead 派 teammate 时若任务涉及多源跨仓复杂依赖追踪 / root cause 链长 ≥ 3 跳，可在 prompt 末尾标 `suggested_model: opus` 显式覆盖；teammate progress front-matter `suggested_model` 字段记录实际跑用的 model（机读对账用）。
+
 替换父类 Teammate Prompt 模板里的 "BASELINE / 验证顺序 / 调研 vs 执行" 节为以下特化体（外层用 4 反引号包裹，避免内部嵌套提前闭合）。其余结构（编号 / WORK_DIR / DOC_DIR / Context 保护规则 / 收尾流程）继承父类不变。
 
 ````

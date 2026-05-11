@@ -736,6 +736,40 @@ lead 收到 teammate 收尾消息含 `ESCALATE` 标签时：
 
 ---
 
+## 6. Model Routing（per-role suggested model / Proposal-012）
+
+所有 teammate 默认 inherit lead 模型，但每个 template 在 §3 Specialized Teammate Prompt Body
+可标 `suggested_model: opus|sonnet|haiku` hint：
+
+| Task 类型 | suggested_model | 理由 |
+|---|---|---|
+| dev-debug 根因调查 / 跨多文件重构 | inherit (opus) | reasoning-heavy |
+| dev-debug verify 类 | sonnet | 跑命令 + 看 log，不需重 reasoning |
+| doc-edit 编辑类 | sonnet | 文档 patch 不复杂 |
+| doc-edit 审计类 | sonnet | 格式校验 |
+| status-consolidation synthesizer | inherit | 多源综合需深推理 |
+| status-consolidation reviewer | sonnet | 异源对比，但不需创造性（cross-model judge 配合 §3 Reviewer Isolated Context 原则）|
+| ci-investigation research | sonnet | web search 快 + 文档读取 |
+| ci-investigation 报告 | sonnet | 总结 |
+
+**不强制**：用户 / lead 可按 wave 决定 override；hint 仅作默认。teammate progress front-matter 的 `suggested_model` 字段记录实际跑用的 model（机读对账用）。
+
+**不引入自动 router**（binary router 需训练数据，复杂度过高）；
+人工指定即可获 RouteLLM 80% 收益（按 LMSYS 数据外推）。
+
+**预期成本节约**：当前 fleet cost ~$1535 / 30 天 → routing 后估计 ~$600-800 / 30 天
+（Sonnet ≈ Opus / 5；Haiku ≈ Opus / 60；按 MEMORY.md llm-usage 实测 30 天数）。
+
+**业界依据**：
+- Anthropic — Built multi-agent："control costs by routing tasks to faster, cheaper models like Haiku"
+- Anthropic Cookbook multimodal/using_sub_agents.ipynb：Opus orchestrate + Haiku worker 经典案例
+- Claude Code subagent yaml frontmatter `model: haiku|sonnet|opus`
+- CrewAI per-agent `llm` + `function_calling_llm`
+- OpenAI Swarm per-agent `model` 字段
+- LMSYS RouteLLM：matrix factorization router 14% GPT-4 calls 达 95% 性能
+
+---
+
 ## 反模式表（通用，父类维护）
 
 本表只维护**所有模板共享**的通用反模式。**dev-debug / doc-edit / status-consolidation / ci-investigation 模板各自的特化反模式见各 templates/<name>.md §6 Specialized Antipatterns。**
