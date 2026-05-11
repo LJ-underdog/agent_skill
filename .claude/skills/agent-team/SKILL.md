@@ -100,6 +100,26 @@ Teammate 在 progress.md 写「PASS / DONE / 跑通」时，
 > **Cross-ref**: reviewer artifact 抽查 ≥ 1/3 的操作清单详见 §代码修改审批门。
 > §0.4 立 teammate 视角红线 / §代码修改审批门 立 reviewer 视角操作清单 — 配套生效。
 
+### 0.5 Teammate 不递归派单
+
+Teammate **不得**通过 Agent tool 派 sub-teammate（无限嵌套风险）。
+如确需子任务：teammate 在 progress 里 raise「需派 sub-teammate 处理 X」，
+由 lead 决定下一 wave 是否派单。
+
+**业界依据**：Claude Code subagent 文档 — "the built-in Plan agent ... to prevent infinite nesting (subagents cannot spawn other subagents)"；Claude Code agent-teams 文档 — "No nested teams: teammates cannot spawn their own teams or teammates"。
+
+### 0.6 Lead 整 wave 不变 [BREAKING]
+
+一个 wave 启动后，lead session **不可中途切换**。
+如需新 lead（用户更换 agent / context 重启），必须：
+1. 当前 lead 写 `WAVE_CLOSE.md` 收尾
+2. 显式 close 本 wave
+3. 新 session 重新 instantiate 新 wave
+
+**业界依据**：Claude Code agent-teams 文档 — "Lead is fixed: the session that creates the team is the lead for its lifetime"。
+
+**[BREAKING] 范围**：仅约束极少数旧 wave "mid-wave 切 lead" 的不规范行为；同一 wave 内 lead 不变 / wave 边界可换 lead 是合规的（窄措辞 narrow，不限制跨 wave 切换）。
+
 ---
 
 ## 继承模型
@@ -645,6 +665,8 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 | #12 Format mismatch / 无 inter-teammate schema → synthesizer 静默吃错（teammate 漏写关键节、字段名漂移、单位不一致，synthesizer 拼合时 silent fail，下游 wave 拿错信号）| 强制 YAML front-matter（status / artifacts / cost / blockers REQUIRED）+ `<!-- REQUIRED -->` 节标记；synthesizer 必须 grep REQUIRED + 校验 front-matter，缺失即 raise，禁止 silent skip（参考 MAST 论文 37% coordination breakdowns；Proposal-013 / 来源 T3-Source-4 / 5 / 6）|
 | #14 Parallel-writer divergence（多 teammate 并行 Edit 同一文件 / 同一 deliverable / 同 component 不同部分，写入互相覆盖或风格不一致）| 写入串行：trivial 5-15 行 lead 自己 Edit；非 trivial → 派单 integrator teammate 串行汇总；多文件 → contract definer 先定 interface（违反 §0.3；来源：T3-Source-1 Cognition Flappy Bird / T3-Source-2 Cognition narrow class / T3-Source-6 Microsoft Swarm Diaries） |
 | #18 Announcement-instead-of-action（lead 收到 APPROVE 后说"立即修正——"/"现在执行——"然后没有 tool call 跟进 = 等同未 APPROVE）| APPROVE 后**下一个 tool call 即执行**，不写"宣告"性文字；APPROVE 与 tool call 之间不允许任何解释性段落（违反 Approval Vocabulary 节；来源：T4-Source-7 + MEMORY.md announcement-instead-of-action） |
+| #13 Teammate 递归派单（teammate 自己 spawn sub-teammate 形成无限嵌套，lead 失控；与官方 subagent / agent-teams 明文禁止冲突）| Teammate **绝不**调用 Agent tool；如需子任务在 progress raise「需派 sub-teammate 处理 X」，由 lead 决定下一 wave 是否派（违反 §0.5；来源：T1-Source-3 Claude Code subagent doc / T1-Source-4 agent-teams doc）|
+| #19 Mid-wave lead 切换（同一 wave 内换 agent / context 重启换 lead session 而未 close 本 wave，导致 wave 状态 / decisions 丢失或不一致）| 当前 lead 必须先写 `WAVE_CLOSE.md` 收尾 + 显式 close 本 wave + 新 session 重新 instantiate 新 wave（违反 §0.6；来源：T1-Source-4 agent-teams "Lead is fixed for its lifetime"）|
 
 ---
 
