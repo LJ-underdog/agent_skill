@@ -84,6 +84,29 @@ DOC_DIR  = {DOC_DIR}
 - **不替用户做决策**：发现待决策选项时列为 "待用户决策" 节，给出 (a)/(b)/(c) 选项 + 各自代价，不预选
 - **不跨 wave 持有结论**：如读到的内容已被后续 wave overrule，必须标 "已被 wave-N overrule" 而不是直接采用
 
+## Reviewer Isolated Context 原则（防 collective delusion / Proposal-014）
+
+Reviewer 角色的 prompt **必须强制隔离**（适用于 reviewer / critical reviewer / [评审] 角色）：
+
+1. **不读** teammate 中间 reasoning 段（progress.md 「调研笔记 / 探索过程」节 / lead 推断性文字）
+2. **只读**：
+   - 最终 deliverable（IMPROVEMENT_PROPOSAL / SESSION_HANDOFF / WAVE_CLOSE / patch / REPORT）
+   - 原始 TEAM_CONFIG.md 的 GOAL / success criteria
+   - 各 teammate progress 的 YAML front-matter（status / artifacts / blockers）
+   - 各 teammate progress 的「## 收尾存档」节（结论 + artifact 引用，不读 reasoning）
+3. **角色显式**：reviewer prompt 开头声明「你是 adversarial critic / user safety officer」
+   而非中性「reviewer」（防 self-preference + conformity 双重 bias）
+4. **跨模型推荐**（高 stakes wave）：reviewer 用与主线 teammate **不同**模型家族
+   （如主线 Opus → reviewer Sonnet；或反之）
+
+**Reviewer 不得为 raise 的问题给妥协方案**；妥协方案是 lead/user 决策范畴
+（来源：MEMORY.md tp2_verify_post_merge_wave 2026-05-09 + Proposal-014 + 反模式表 #15）。
+
+**业界依据**：
+- DReaMAD (arXiv 2503.16814)："use cross-model judging (e.g., smaller model generates, stronger model judges)" / "Diverse model pools or calibrated objectives for each agent"
+- Redis："If the judge shares too much context with producing agents, it becomes another participant in collective delusion"
+- 实证：Claude-3 Haiku "100% conforming to user's incorrect suggestions immediately after first probing question"
+
 ## 输出文件 schema（共通）
 
 **所有 teammate progress** 必须遵循父类 SKILL.md §Progress 文件格式（YAML front-matter / Trace / REQUIRED 标记）；
