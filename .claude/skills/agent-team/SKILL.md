@@ -347,6 +347,17 @@ touch project_{name}/todo.md
 4. 完整的 Teammate Prompt（从 TEAM_CONFIG.md 生成）
 5. WORK_DIR 和 DOC_DIR 路径
 
+#### Anthropic 4 要素必备校验（每次派单前自查）
+
+每条 teammate prompt **必须**包含以下 4 要素（Anthropic「Built multi-agent research system」明文要求 — "Each subagent needs an objective, an output format, guidance on the tools and sources to use, and clear task boundaries"）：
+
+1. **Objective**（本次目标）— 一句话可量化
+2. **Output format**（输出格式）— 引用 SHARED OUTPUT SKELETON 或显式列必填节（含 YAML front-matter REQUIRED 字段）
+3. **Tools + sources guidance**（工具与来源指引）— 显式列允许用的工具 + 来源类型优先级（如「官方文档 > postmortem 博客 > 学术 > 一般博客」防 SEO 农场偏好）
+4. **Clear task boundaries**（任务边界）— 显式列「不做」清单
+
+> 这 4 要素与上方 5 项「编号 / 收尾摘要 / item / WORK_DIR / DOC_DIR」**正交补充**：上方 5 项侧重协调与上下文，4 要素侧重**任务规约 + 边界 + 输出契约**。两者并存，不替代。
+
 ### 接收结果后（每次立即）
 1. 读 `WORK_DIR/progress/teammate-{N}.md`
 2. 更新 `WORK_DIR/todo.md`（[x] / [!]，附结论一行）
