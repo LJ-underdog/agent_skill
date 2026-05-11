@@ -40,6 +40,34 @@ GOAL:       {一句话，可量化}
 
 ---
 
+## Budget（每 wave 必填，Proposal-016 BREAKING）
+
+<!--
+Wave 必填字段。旧 wave 不写时 lead 用 fallback 默认值（wave_total_tool_calls=100 / per_teammate_default=20），
+不阻塞 resume，但收尾时建议补全 + promote「补 Budget 字段」task。
+
+详见父类 SKILL.md §7 TODO Budget 字段（schema 完整说明 + Context 保护规则多 axis 升级）。
+Lead 派单 prompt 末尾必须附 budget pressure 软警告（§7.2）：
+  "剩余预算 N tool calls — 若快用完请收尾不要开新 task"
+Teammate progress front-matter cost.tool_calls 字段供 lead 程序化对账（每 teammate 实际 vs 预算）。
+-->
+
+```yaml
+budget:
+  wave_total_tool_calls: 100              # 全 wave 上限（含 reviewer + synthesizer + 所有 teammate 累计）
+  per_teammate_default: 20                # 单 teammate 默认上限
+  per_teammate_overrides: {}              # 复杂调研类显式放宽，如 {teammate-3: 30}
+  wave_total_estimated_usd: 5             # 含模型 cost（按 §6 Model Routing 后估）
+  on_overrun: warn                        # warn | abort | escalate-to-user
+```
+
+**fallback 默认值**（旧 wave / 缺字段时用）：
+- `wave_total_tool_calls = 100`
+- `per_teammate_default = 20`
+- `on_overrun = warn`
+
+---
+
 ## CONSTRAINTS
 
 <!--

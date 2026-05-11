@@ -651,6 +651,8 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 
 ## TODO List 格式
 
+> Budget 节单独由 `TEAM_CONFIG.md ## Budget` 提供（schema 详见 §7 + TEAM_INSTANCE_TEMPLATE.md），不重复列在 todo.md。Lead 派单时**必须**在 prompt 末尾附 budget pressure 软警告（§7.2）。
+
 ```markdown
 # TODO - {PROJECT}
 
@@ -767,6 +769,44 @@ lead 收到 teammate 收尾消息含 `ESCALATE` 标签时：
 - CrewAI per-agent `llm` + `function_calling_llm`
 - OpenAI Swarm per-agent `model` 字段
 - LMSYS RouteLLM：matrix factorization router 14% GPT-4 calls 达 95% 性能
+
+---
+
+## 7. TODO Budget 字段（Proposal-016, BREAKING）
+
+每个 wave 的 `TEAM_CONFIG.md` **必须**含 `## Budget` 节（schema 见 `TEAM_INSTANCE_TEMPLATE.md` Budget 节）；旧 wave 不写 budget 时使用 fallback 默认值（`wave_total_tool_calls=100 / per_teammate_default=20`），不阻塞 resume。
+
+### 7.1 字段语义
+
+| 字段 | 含义 | 默认 (fallback) |
+|---|---|---|
+| `wave_total_tool_calls` | 全 wave 上限（含 reviewer + synthesizer + 所有 teammate 累计） | 100 |
+| `per_teammate_default` | 单 teammate 默认上限 | 20 |
+| `per_teammate_overrides` | 复杂调研类 teammate 显式放宽（如 `{teammate-3: 30}`） | {} |
+| `wave_total_estimated_usd` | 含模型 cost 估（按 §6 Model Routing 后估） | （选填） |
+| `on_overrun` | 超预算时行为：`warn` / `abort` / `escalate-to-user` | `warn` |
+
+### 7.2 Lead 派单 prompt 末尾强制加 budget pressure 软警告
+
+> 剩余预算 N tool calls — 若快用完请收尾不要开新 task
+
+teammate progress front-matter `cost.tool_calls` 字段供 lead 程序化对账（每 teammate 实际 vs 预算）。
+
+### 7.3 Context 保护规则升级（多 axis，覆盖父类 Teammate Prompt 模板原 §Context 保护规则）
+
+| Axis | 软警告 | 硬截断 |
+|---|---|---|
+| tool calls | ≥15 当前 item 完成后收尾 | ≥20 立即收尾 |
+| 估算 token 累积 | ≥80K 收尾警告 | ≥120K 立即收尾 |
+| wall-time | ≥30 min 自查「是否有真进展」 | ≥60 min escalate to lead |
+| 同操作重复（含 tool+args_hash） | 连续 ≥5 次未拿新信息 raise STUCK | 连续 ≥8 次硬截断 |
+
+**业界依据**：MetaGPT `team.invest($) + NoMoneyException`；CrewAI `max_rpm / max_iter / max_execution_time / max_retry_limit`；Anthropic — multi-agent "agents typically use about 4× more tokens than chat ... multi-agent systems use about 15× more tokens" / "Token usage explains 80% of the variance"；Inngest 软警告 + 硬截断（剩 10 iter "Start wrapping up" / 剩 3 iter "MUST respond NOW"）。
+
+### 7.4 BREAKING 范围与向后兼容
+
+- **BREAKING**：新 wave 必须在 `TEAM_CONFIG.md` 写 `## Budget` 节（fallback 仅作为旧 wave 兼容，新 wave 不写 = lead 应主动补全）
+- **向后兼容**：旧 wave（无 Budget 节）resume 时 lead 用 fallback 默认值继续，不阻塞，但收尾时建议 promote 一条「补 Budget 字段」task
 
 ---
 
