@@ -196,6 +196,12 @@ agent-team（执行）通常与 project-summary（记录）同时使用。
 - 预计 <15 tool calls 即可完成
 - 需要频繁与用户交互确认方向
 - 复杂进程/全局状态需要单一控制者
+- **Single-codebase coding-tight task**（即使 item ≥ 4）—— Anthropic 自己说
+  "coding tasks involve fewer truly parallelizable tasks than research"；
+  arXiv 2601.04748 实证：skill-based single-agent 在编码 benchmark 上
+  ~等同 multi-agent 准确率 + 54% token 节省 + 50% 延迟降低。
+  只有任务跨多 codebase / 多领域 / 含调研维度时才上 multi-agent。
+  （来源：Proposal-007 / 反模式表 #17）
 
 **判断后如不适合，直接单 Claude 完成，不要强行用 Agent Team。**
 
