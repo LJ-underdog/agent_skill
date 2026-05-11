@@ -234,6 +234,27 @@ agent-team（执行）通常与 project-summary（记录）同时使用。
       └─ 都不匹配                            → fallback templates/dev-debug.md（最通用）
 ```
 
+### Teammate 数量量化规则（继承 Anthropic scaling rule）
+
+| 任务复杂度 | 推荐 teammate 数 | 典型 tool calls / teammate |
+|---|---|---|
+| Fact-finding（单一调研） | 1（直接单 context，不开 wave） | 3-10 |
+| Direct comparison（2-3 选项对比） | 2-4 | 10-15 |
+| Multi-domain research / debugging | 4-7（本 skill 上限 5 推荐 / 极限 7） | 10-20 |
+| Complex 跨多 codebase 重构 | >10 — 应分多 wave，不一次性派 | — |
+
+**下限规则**：< 2 teammate 不要走 wave，直接单 context 做（违反 §反模式表第 8 条 / 来源：Proposal-008）。
+**业界依据**：Anthropic — "Simple fact-finding requires just 1 agent with 3-10 tool calls, direct comparisons might need 2-4 subagents, complex research might use more than 10 subagents with clearly divided responsibilities" (Built multi-agent research system)。
+
+### 5 模式归类（Anthropic Building Effective Agents）
+
+本 skill 当前 4 templates 都属 **Orchestrator-Workers** 模式特化。
+- **Prompt Chaining**：Workflow 1/2/3 本身串行链
+- **Routing**：Workflow 0.5 即显式 Routing 决策（任务类型 → 模板）
+- **Parallelization**：§0.2 铁则强制 Phase 1 ≥2 teammate 同 message
+- **Orchestrator-Workers**：4 templates 主体模式（lead orchestrate + teammate worker）
+- **Evaluator-Optimizer**：见 Proposal-013（Trace + reviewer artifact spot-check 是其轻量实现；Voting 多 teammate 独立给方案后投票，本 skill 暂不实现，作未来扩展）
+
 ### Instantiate 时使用模板
 
 在 `project_{name}/TEAM_CONFIG.md` 顶部声明：
@@ -711,7 +732,7 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 | #19 Mid-wave lead 切换（同一 wave 内换 agent / context 重启换 lead session 而未 close 本 wave，导致 wave 状态 / decisions 丢失或不一致）| 当前 lead 必须先写 `WAVE_CLOSE.md` 收尾 + 显式 close 本 wave + 新 session 重新 instantiate 新 wave（违反 §0.6；来源：T1-Source-4 agent-teams "Lead is fixed for its lifetime"）|
 | #15 Reviewer-actor collective delusion（reviewer 与 actor 同模型 + 共享所有 progress 中间 reasoning，self-preference + conformity 双重叠加 → reviewer "看起来 PASS" 实则与 actor 同视角误判，未抓出根本问题）| reviewer template 强制 isolated context：reviewer 只读最终 deliverable + 原始 TEAM_CONFIG.md success criteria，**不读** teammate 中间 progress 的 reasoning 段；reviewer prompt 显式角色化（adversarial critic / user safety officer）；高 stakes wave 考虑 cross-model judge（lead = Opus → reviewer 派 Sonnet teammate 或反之）（来源：T3-Source-8 DReaMAD + Agent-as-a-Judge / T3-Source-9 collective delusion；待 Wave 2 Proposal-014 落 reviewer template）|
 | #16 Stuck-no-progress detection silent fail（teammate 跑 18 次 Bash 但都是同一 grep 微调 args / Read 同一文件多次 / 反复 retry 同一 endpoint 无新信息，tool calls 数 OK 但 0 真进展，当前框架看不出 silent stuck）| teammate prompt 红线加："若同一类操作（grep/Read 同一文件）连续 ≥5 次未拿到新信息，必须 raise 'STUCK' 给 lead"；reviewer 抽查 progress 时关注"重复操作但无新数据"模式（来源：T3-Source-7 Agent Patterns infinite loop typology）|
-| #17 对 coding-tight task 强行开 wave（任务主体是 single-codebase coding / 非 research / 非多 source 综合，但 item ≥ 4 触发了 Workflow 0 阈值导致开 wave，反而把适合单 context + skills 的活分散切碎，coordination overhead > 收益）| Workflow 0.5 选择器加"task domain"判定支线：若 task 主体是 single-codebase coding，即使 item ≥ 4 也建议**单 context + skills**（不开 wave）；Anthropic 明说 "coding tasks involve fewer truly parallelizable tasks than research, and LLM agents are not yet great at coordinating ... in real time"（来源：T3-Source-11 HN/philschmid + T3-Source-12 skill-based single agent；待 Wave 2 Proposal-007/008 落 Workflow 0.5）|
+| #17 对 coding-tight task 强行开 wave（任务主体是 single-codebase coding / 非 research / 非多 source 综合，但 item ≥ 4 触发了 Workflow 0 阈值导致开 wave，反而把适合单 context + skills 的活分散切碎，coordination overhead > 收益）| Workflow 0.5 选择器加"task domain"判定支线：若 task 主体是 single-codebase coding，即使 item ≥ 4 也建议**单 context + skills**（不开 wave）；Anthropic 明说 "coding tasks involve fewer truly parallelizable tasks than research, and LLM agents are not yet great at coordinating ... in real time"（来源：T3-Source-11 HN/philschmid + T3-Source-12 skill-based single agent；已落 Wave 2.A C1 Proposal-007 Workflow 0「不适合」清单 + C2 Proposal-008 Workflow 0.5 量化规则）|
 | #20 Self-report 即 ground truth（reviewer / lead 仅看 teammate progress.md 的"PASS / DONE"叙述就接受结论，不交叉验证 artifact 链 — 是 §0.4 铁则的反模式表显式条目，反复触发场景包括："跑通了" 无 git diff / "verify done" 无 stdout / "调研完成" 无 URL 引文）| 任何"PASS / DONE" claim 必须配 §0.4 三类 artifact 之一（git diff / file mtime+行号 / cmd stdout 截录 / 外部 URL+引文）；reviewer 抽查 ≥ 1/3 teammate 的 claim → artifact 链；progress.md 「结论」节缺 artifact = 视为 NOT RUN（违反 §0.4；升级版 / 来源：T3-Source-6 Microsoft Swarm Diaries lying test writer + T3-Source-9 Redis confident hallucination + Proposal-3-2）|
 
 ---
