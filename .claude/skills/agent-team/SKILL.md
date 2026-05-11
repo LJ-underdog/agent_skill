@@ -52,6 +52,32 @@ Lead **只做**这四类动作：
 > 已知风险: claude-code GitHub issue **#57037** (permission cascade-failure on parallel batch) 偶发；若整个 wave 多 teammate 同时报 "Permission to use X denied"，**兜底切 sequential**（每 turn 1 Agent call）并向用户 raise 触发了已知 bug。
 > ❌ **严禁预防性切 sequential** — 听说 / 怀疑 parallel 有 bug 就主动改串行 = 违反本节铁则。仅当**实证**触发 cascade-failure 才允许切 sequential。
 
+### 0.3 Writes single-threaded（写入单线程铁则）
+
+多 agent 出主意可以并行（调研 / 验证 / 各自写 progress.md / 跑独立 benchmark），
+但**写入** —— 改源码 / 写 patch 进同一文件 / 落盘 deliverable —— 必须串行。
+
+**OK 的并行写**（每 teammate 写自己独立的输出文件）：
+- `progress/teammate-{N}.md` — 每个 teammate 自己一份
+- `proposed_fix_{item}.md` — 每个 item 独立文件
+- 独立 benchmark log / 独立调研 report
+
+**不 OK 的并行写**：
+- 多 teammate 并行 Edit 同一个源码文件
+- 多 teammate 并行写同一个 deliverable / consolidated report
+- 多 teammate 并行实施同一 component 的不同部分
+
+**正确做法**：
+- Trivial patch（5-15 行） → lead 自己 Edit（已在 §0.1 例外列出）
+- 非 trivial 修改 → 派**单个** integrator teammate 串行汇总各方案后落盘
+- 多文件协作 → 先派**单个 contract definer** 固定 interface，再并行实施
+
+**三维约束自洽**：§0.1 限 lead 行为 / §0.2 限调研并发 / §0.3 限写入并发。
+
+> **Wave 0.5 cross-check（实证补充, 2026-05-09 / 2026-05-11 落地）**：
+> writes-single-thread 的限制范围 = **源码 / patch / deliverable**（如 `~/.claude/skills/` 文件、wave-level consolidated report、共同 commit patch）。
+> **不**扩展到 `progress/teammate-N.md`（天然按 N 分片，多 teammate 并写无 race）或独立 benchmark / 调研 report；这些路径分片设计已在 SHARED OUTPUT SKELETON 中固化。若未来 wave 引入 wave-level 共写文档则需新增 lock / leader / aggregator（详见 META_FINDING.md Dim-4 / 触发 Proposal-META-A）。
+
 ---
 
 ## 继承模型
@@ -575,6 +601,7 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 | 把模板特化反模式（如 dev-debug 的"crash 直接改代码"）当父类规则 | 特化反模式在各 templates/<name>.md §6；父类只管通用条 |
 | Reviewer raise"致命"问题时盲信其妥协方案 | reviewer 视角 = 找最低执行成本；lead 视角 = 对齐用户真实任务目标。raise 多半是 task 方向修正信号，lead 应主动认错 / 派新 teammate 对齐目标，而不是按 reviewer 妥协方案继续跑（来源：tp2_verify_post_merge_wave 2026-05-09） |
 | #12 Format mismatch / 无 inter-teammate schema → synthesizer 静默吃错（teammate 漏写关键节、字段名漂移、单位不一致，synthesizer 拼合时 silent fail，下游 wave 拿错信号）| 强制 YAML front-matter（status / artifacts / cost / blockers REQUIRED）+ `<!-- REQUIRED -->` 节标记；synthesizer 必须 grep REQUIRED + 校验 front-matter，缺失即 raise，禁止 silent skip（参考 MAST 论文 37% coordination breakdowns；Proposal-013 / 来源 T3-Source-4 / 5 / 6）|
+| #14 Parallel-writer divergence（多 teammate 并行 Edit 同一文件 / 同一 deliverable / 同 component 不同部分，写入互相覆盖或风格不一致）| 写入串行：trivial 5-15 行 lead 自己 Edit；非 trivial → 派单 integrator teammate 串行汇总；多文件 → contract definer 先定 interface（违反 §0.3；来源：T3-Source-1 Cognition Flappy Bird / T3-Source-2 Cognition narrow class / T3-Source-6 Microsoft Swarm Diaries） |
 
 ---
 
