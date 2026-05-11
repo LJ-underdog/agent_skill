@@ -78,6 +78,28 @@ Lead **只做**这四类动作：
 > writes-single-thread 的限制范围 = **源码 / patch / deliverable**（如 `~/.claude/skills/` 文件、wave-level consolidated report、共同 commit patch）。
 > **不**扩展到 `progress/teammate-N.md`（天然按 N 分片，多 teammate 并写无 race）或独立 benchmark / 调研 report；这些路径分片设计已在 SHARED OUTPUT SKELETON 中固化。若未来 wave 引入 wave-level 共写文档则需新增 lock / leader / aggregator（详见 META_FINDING.md Dim-4 / 触发 Proposal-META-A）。
 
+### 0.4 Teammate self-report 不可作为 ground truth
+
+Teammate 在 progress.md 写「PASS / DONE / 跑通」时，
+必须有可验证 artifact 作背书 — 否则视为 NOT RUN。
+
+**三类有效 artifact**：
+1. git diff / file mtime / 文件路径 + 行号（代码 / 文档修改类）
+2. 命令 stdout/stderr 截录（运行类）
+3. 外部源 URL + 引文（调研类）
+
+**Teammate 红线**（写入 prompt 模板）：
+- 不许 fabricate「PASS」— 若未实跑必须明示「NOT RUN, blocker: ...」
+- progress.md 「结论」节每条必须附 artifact 路径或行号
+
+**Reviewer 红线**（写入 reviewer prompt）：
+- 对每条 teammate「PASS / DONE」claim，必须 cross-check artifact
+- 仅看 progress 描述就 PASS 整个 wave = 反模式
+- 至少抽查 1/3 teammate 的 claim → artifact 链条
+
+> **Cross-ref**: reviewer artifact 抽查 ≥ 1/3 的操作清单详见 §代码修改审批门。
+> §0.4 立 teammate 视角红线 / §代码修改审批门 立 reviewer 视角操作清单 — 配套生效。
+
 ---
 
 ## 继承模型
@@ -316,6 +338,7 @@ touch project_{name}/todo.md
 - [ ] 有实验数值或代码阅读证据（非推断）
 - [ ] 有回归测试计划（说明如何验证基线不退化）
 - [ ] proposed_fix 写在独立文件 `proposed_fix_{item}.md`（不共用）
+- [ ] **Reviewer artifact spot-check**: 对 teammate progress 中每条「PASS / DONE」claim cross-check artifact；至少抽查 1/3 teammate 的 claim → artifact 链条（详见 §0.4 三类有效 artifact）
 
 缺任何一条 → 不批准，加调查 item 补充。
 

@@ -144,6 +144,12 @@ synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatc
 - ## 缺失风险：列出未覆盖的潜在 follow-up
 - ## Findings（block / warn / nit）：分级
 - ## Memory 同步检查：是否漏写持久化动作
+
+## Reviewer 红线（§0.4 配套，self-report 不可信铁则下游执行）
+- **不许仅看 progress 描述就 PASS**: 仅文字描述 = self-report，必须按 §0.4 三类 artifact 做 cross-check
+- **artifact 三类必查**: 代码/文档（file path + line / git diff）/ 运行（cmd stdout snippet）/ 调研（URL + 引文）
+- **抽查覆盖率 ≥ 1/3**: 至少抽查 1/3 teammate 的 claim → artifact 链条；少于此 = reviewer 失职
+- **遇 fabricated PASS 立即 raise**: 如 teammate 自报 PASS 但 artifact 不存在 / 不匹配，必须在 progress 标 [Blocked] + 列入 Findings；不许妥协 / 不许"信任默认"
 ````
 
 ---
