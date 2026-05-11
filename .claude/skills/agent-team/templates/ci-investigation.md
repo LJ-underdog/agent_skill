@@ -52,6 +52,8 @@ CI 调查任务**没有 fix Phase**——fix 路径选择交给调用方 lead �
 
 ## 3. Specialized Teammate Prompt Body
 
+**必读 Memory Tier（Proposal-006 / 父类 §1）**：ci-investigation = **L2**（Core Memory TEAM_CONFIG/WAVE_CLOSE 即可；CI forensics 强依赖即时 raw log 拉取，历史 progress 跨 wave 关联弱，默认不必读 L3/L4，按异常信号 selective load）。4 tier 表与详细规则见 SKILL.md §1，本模板不重复。
+
 ### Suggested model（继承父类 §6 Model Routing）
 
 | 角色 | suggested_model | 理由 |

@@ -78,6 +78,8 @@ Phase 0 ─串行─→ 决策门 ─→ Phase 1 ─并行─→ 决策门 ─�
 
 ## 3. Specialized Teammate Prompt Body
 
+**必读 Memory Tier（Proposal-006 / 父类 §1）**：dev-debug = **L2 + L3**（Core Memory TEAM_CONFIG/WAVE_CLOSE + Recall Memory 全部 progress；看 teammate 间假设关系，避免重复踩同一坑）。4 tier 表与详细规则见 SKILL.md §1，本模板不重复。
+
 **Suggested model（继承父类 §6 Model Routing）**：dev-debug 全角色默认 **inherit lead 模型**（reasoning-heavy 任务，不 routing；verify 类如需 routing 由 lead 在派单时显式 override 为 sonnet）。
 
 下面这段 prompt body 直接复用父类 SKILL.md 「Teammate Prompt 模板」的 dev-debug 特化部分（含 BASELINE / KNOWN_FACTS / 验证顺序 / 调研 vs 执行 vs 验证）。lead instantiate 时把 `{占位符}` 替换为 TEAM_CONFIG.md 对应字段。

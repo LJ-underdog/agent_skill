@@ -49,6 +49,8 @@ Phase 0 SKIP ─→ Phase 1 audit ─→ 决策门 ─→ Phase 2 parallel edit 
 
 ## 3. Specialized Teammate Prompt Body
 
+**必读 Memory Tier（Proposal-006 / 父类 §1）**：doc-edit = **L2 + L4**（Core Memory TEAM_CONFIG/WAVE_CLOSE + Archival Memory ~/.claude/projects/.../memory/MEMORY.md；历史决策记录避免覆盖已 promote 的措辞约定）。4 tier 表与详细规则见 SKILL.md §1，本模板不重复。
+
 ### Suggested model（继承父类 §6 Model Routing）
 
 | 角色 | suggested_model | 理由 |

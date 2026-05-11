@@ -59,6 +59,8 @@
 
 ## 3. Specialized Teammate Prompt Body
 
+**必读 Memory Tier（Proposal-006 / 父类 §1）**：status-consolidation = **L2 + L3**（Core Memory TEAM_CONFIG/WAVE_CLOSE + Recall Memory **必读全部 progress** — 本模板 reader/synthesizer/reviewer 三角色都强依赖跨 teammate progress 综合）。4 tier 表与详细规则见 SKILL.md §1，本模板不重复。
+
 ### Suggested model（继承父类 §6 Model Routing）
 
 | 角色 | suggested_model | 理由 |

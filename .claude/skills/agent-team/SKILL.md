@@ -182,6 +182,30 @@ agent-team（执行）通常与 project-summary（记录）同时使用。
 
 ---
 
+## 1. Memory 分层（4-tier 模型 / Proposal-006）
+
+本 skill 4 处 memory，按 tier 分层管理（仿 Letta MemGPT 设计 + Anthropic context engineering 三大对策 compaction / structured note-taking / sub-agent isolation）：
+
+| Tier | 名称 | 路径 | 何时读 | 何时写 |
+|---|---|---|---|---|
+| L1 | Message Buffer | 当前 turn 上下文 | 自动 | 自动 |
+| L2 | Core Memory | TEAM_CONFIG.md / WAVE_CLOSE.md | 每个 teammate prompt 必读 | lead 每 phase 收尾写 |
+| L3 | Recall Memory | progress/teammate-*.md | reviewer 必读全部 / synthesizer 按需读 | teammate 自管 |
+| L4 | Archival Memory | ~/.claude/projects/.../memory/MEMORY.md | lead 启动时读 / Promotion 时写 | Workflow 3 promote |
+
+**每个 template 在 §3 Specialized Teammate Prompt Body 头部声明「必读 tier 清单」**：
+- 默认 L2
+- dev-debug：L2 + L3（看 teammate 间假设关系）
+- doc-edit：L2 + L4（历史决策记录）
+- status-consolidation：L2 + L3（必读全部 progress）
+- ci-investigation：L2
+
+**Lead 自己应避免一锅端读 L3 全部**；按需 selective load（按 teammate id / 按 phase / 按异常信号挑读），与 §0.1「Lead 不 Read 长源码」铁则一致。
+
+**业界依据**：Letta MemGPT 4 类（Message Buffer / Core Memory / Recall / Archival）+ Anthropic「effective context engineering」三大对策（compaction / structured note-taking / sub-agent isolation）。
+
+---
+
 ## Workflow 0：决策 — 是否使用 Agent Team？
 
 **适合：**
