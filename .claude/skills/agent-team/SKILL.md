@@ -47,6 +47,11 @@ Lead **只做**这四类动作：
 - 如确实有依赖关系必须串行，**先向用户说明依赖原因 + 拿到明确 override 再执行**
 - 单 teammate 任务直接单上下文做，不要走 agent-team 流程
 
+> **脚注（Wave 0.5 META-1 实证补充, 2026-05-09 / 2026-05-11 落地）**:
+> Claude Code harness 实测**真并发**执行多 Agent tool_use（实测 wall-time ≈ max teammate duration，非 sum；实证：landing wave T1-T4 sequential 预期 820s vs 实测 ≈278s，节省 542s）。
+> 已知风险: claude-code GitHub issue **#57037** (permission cascade-failure on parallel batch) 偶发；若整个 wave 多 teammate 同时报 "Permission to use X denied"，**兜底切 sequential**（每 turn 1 Agent call）并向用户 raise 触发了已知 bug。
+> ❌ **严禁预防性切 sequential** — 听说 / 怀疑 parallel 有 bug 就主动改串行 = 违反本节铁则。仅当**实证**触发 cascade-failure 才允许切 sequential。
+
 ---
 
 ## 继承模型
