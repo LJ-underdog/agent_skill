@@ -227,6 +227,7 @@ agent-team（执行）通常与 project-summary（记录）同时使用。
 ```
 任务是改源码 / 跑测试 / debug crash？
   ├─ Yes → templates/dev-debug.md
+  │        └─ 根因模糊 / 多个 plausible hypothesis / anchoring 风险高？→ 启用 §dev-debug 子模式 competing-hypotheses（Proposal-021 Path B）
   └─ No
       ├─ 任务是改多个 markdown 文件？        → templates/doc-edit.md
       ├─ 任务是从 progress / log 汇总状态？ → templates/status-consolidation.md

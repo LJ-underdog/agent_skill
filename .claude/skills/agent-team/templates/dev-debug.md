@@ -142,6 +142,35 @@ progress 文件里"结论"和"【未验证假设】"必须分开写，绝不混�
 
 ---
 
+## 子模式：competing-hypotheses（Proposal-021 Path B，根因模糊 / anchoring 风险高场景）
+
+**Use when**：根因模糊 / 多个 plausible hypothesis / 单线推理易 anchoring 的场景（debug crash 但根因有 N 个互斥候选 / 性能退化定位多组件嫌疑）。
+
+**业界依据（≥2 独立来源）**：
+- Claude Code agent-teams 官方文档将 "Debugging with competing hypotheses: teammates test different theories in parallel and converge on the answer faster" 列为 4 大 strongest use cases 之一（不是单一 example）；verbatim："**The debate structure is the key mechanism here**. Sequential investigation suffers from anchoring: once one theory is explored, subsequent investigation is biased toward it. With multiple independent investigators actively trying to disprove each other, **the theory that survives is much more likely to be the actual root cause**."
+- DReaMAD (arXiv 2503.16814) 实证 standard MAD 有 belief entrenchment / echo chamber 风险（agents reinforce shared errors）；DReaMAD 框架 +9.5% accuracy / +19.0% win rate over standard MAD
+- Wu et al. (arXiv 2511.07784): "majority pressure suppresses independent correction"
+
+**子模式**（dev-debug Phase 1 内特化派单方式，**不**升 Phase / **不**新建模板）：
+
+1. **Phase 1 lead 列举 N 个互斥 hypothesis**（每个一句话），N ≥ 3
+2. **同 message 并行派 N 个 [调查] teammate**，每人 prompt 含**硬约束**（官方 verbatim 措辞）：
+   > "Each teammate's job is not only to investigate its own theory **but to challenge the others'**. Find evidence that disproves the other N-1 hypotheses; if you fail to disprove a competing hypothesis, write that explicitly in your progress."
+3. **Phase 1 末 synthesizer** 综合 N 份 progress，看哪个 hypothesis 在 cross-fire 后存活（survival = 至少 1 个其他 teammate 尝试 disprove 但失败）
+4. **Phase 1 末 reviewer 红线**（与现有 reviewer 模板叠加，**不**取消父类 §0.4 / 反模式 #20）：
+   > **Reviewer 必须强制 raise 的反模式**："each teammate only defends own = anti-pattern"。reviewer 抽查 N 份 progress，若 ≥1 teammate 完全没尝试挑战其他 hypothesis（仅论证自己），必须 raise P0 finding 要求重派该 teammate。
+
+**不 use when**：
+- 根因明确（只有 1 个 plausible hypothesis）→ 标准 dev-debug Phase 1 即可
+- 多文件协作（writes 主导）→ 用 contract-first 子流程而非 competing-hypotheses
+- 单 teammate 任务 → 跳过整个 wave
+
+**与父类 §0.3 / 反模式 #15 关系**：
+- 本子模式 = read-heavy investigation（teammates 不直接写代码 / 不触发 parallel-writer 反模式）→ §0.3 自动适用
+- 反模式 #15 (collective delusion) 已防 reviewer-actor 同视角；本子模式 reviewer 红线在其上叠加 "challenge each other check"
+
+---
+
 ## 子流程：contract-first（Proposal-017，多文件 / 多 component 协作场景）
 
 **Use when**：本 wave 涉及多文件 / 多 component 协作（如 storage + CLI + API 同时改 / 多个 teammate 实施同一 feature 的不同部分），且 interface（function signature / file path / data schema / error code）尚未冻结。
