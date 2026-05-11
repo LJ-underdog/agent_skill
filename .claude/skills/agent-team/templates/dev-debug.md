@@ -193,6 +193,12 @@ progress 文件里"结论"和"【未验证假设】"必须分开写，绝不混�
 
 ---
 
+## Reviewer Rubric（GPA 5 维评分，Proposal-019，如启用）
+- **触发**：dev-debug reviewer 角色（Phase 1 并行预审）如启用 5 维评分，按父类 SKILL.md §Reviewer Rubric 输出 GPA 5 维 + Critical Findings；core 模板（status-consolidation）必跑，dev-debug 视 wave 复杂度选择
+- **5 维表 / 评分要求**：见父类 §Reviewer Rubric（不在此重复）
+
+---
+
 ## 调研 vs 执行 vs 验证 边界
 
 | 当前 item 类型 | 你能做 | 你不能做 |

@@ -183,6 +183,11 @@ synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatc
 - **artifact 三类必查**: 代码/文档（file path + line / git diff）/ 运行（cmd stdout snippet）/ 调研（URL + 引文）
 - **抽查覆盖率 ≥ 1/3**: 至少抽查 1/3 teammate 的 claim → artifact 链条；少于此 = reviewer 失职
 - **遇 fabricated PASS 立即 raise**: 如 teammate 自报 PASS 但 artifact 不存在 / 不匹配，必须在 progress 标 [Blocked] + 列入 Findings；不许妥协 / 不许"信任默认"
+
+## Reviewer Rubric（GPA 5 维评分，Proposal-019，core 模板必跑）
+- **触发**：本模板 reviewer / [评审] 角色每 wave 收尾**必须**输出 GPA 5 维评分 + Critical Findings
+- **5 维表**：见父类 SKILL.md §Reviewer Rubric（不在此重复，避免漂移）
+- **评分要求**：每维 1-5 分 + evidence 引用（§0.4 三类 artifact）；Critical Findings 标 P0/P1/P2 不给妥协方案
 ````
 
 ---

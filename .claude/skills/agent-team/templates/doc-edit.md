@@ -152,6 +152,10 @@ synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatc
 ```
 ````
 
+### Reviewer Rubric（GPA 5 维评分，Proposal-019，如启用）
+- **触发**：doc-edit reviewer 角色（Phase 3 串行复审）如启用 5 维评分，按父类 SKILL.md §Reviewer Rubric 输出 GPA 5 维 + Critical Findings；core 模板（status-consolidation）必跑，doc-edit 视 wave 复杂度选择
+- **5 维表 / 评分要求**：见父类 §Reviewer Rubric（不在此重复）
+
 ---
 
 ## 4. Item Types

@@ -437,6 +437,26 @@ Resume wave 不重派已完成 teammate；不重读 L4 archival memory（节约�
 
 缺任何一条 → 不批准，加调查 item 补充。
 
+### Reviewer Rubric（GPA 5 维 / Proposal-019，推父类）
+
+每个 wave 收尾，reviewer 必须为整 wave 评 5 维 1-5 分（含 evidence 引用）。结构化评分维度统一在父类，4 模板 §3 通过引用本节使用（不重复 5 维表）。
+
+| 维度 | 含义 | 评分依据示例 |
+|---|---|---|
+| Goal Fulfillment | wave 是否达成 GOAL 节目标 | 引用 GOAL 节 + deliverable 验证 |
+| Logical Consistency | teammate 之间结论无矛盾 | 列具体冲突点（如 source URL 互相印证 / 抵触）|
+| Execution Efficiency | tool call 总数 vs ideal、是否有重复劳动 | 列 wave_total_tool_calls vs §7 budget |
+| Plan Quality | wave 计划本身是否合理（是否漏关键 item） | 列 missing items |
+| Plan Adherence | teammate 是否走偏 / 越权 | 列每个 teammate 实际 vs 派单 |
+
+**评分要求**：
+- 每维 1-5 分（1 = 严重不达标 / 5 = 完美），分数必须附 evidence 引用（progress 行号 / artifact path / cmd output / URL 三选一，遵循 §0.4 三类 artifact）
+- + Critical Findings 节（自由文本，标 P0/P1/P2，**不修复，不给妥协方案** — 与反模式表 #15 / status-consolidation §3 Reviewer Isolated Context 对齐）
+
+**业界依据**：
+- UC Berkeley RDI：警告盲信 LLM-as-judge 比没有 eval 更糟，应 "explicit rubric + few-shot + structured JSON 要 evidence before scoring"
+- Agent GPA (arXiv 2510.08847)：5 维 trajectory-level 指标，可 LLM-as-judge reference-free 算
+
 ### Approval Vocabulary（typed user response）
 
 Lead 派高风险 item（risk ≥ medium：git push / commit / 改源码 / GPU verify / 跑 prod 命令）

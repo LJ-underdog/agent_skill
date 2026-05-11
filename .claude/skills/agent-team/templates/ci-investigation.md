@@ -207,6 +207,10 @@ synthesizer / reviewer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 for
 （其余流程：Context 保护规则 / 卡住处理 / 收尾流程 → 沿用父类 SKILL.md）
 ````
 
+### Reviewer Rubric（GPA 5 维评分，Proposal-019，如启用）
+- **触发**：ci-investigation reviewer 角色（Phase R 串行复审）如启用 5 维评分，按父类 SKILL.md §Reviewer Rubric 输出 GPA 5 维 + Critical Findings；core 模板（status-consolidation）必跑，ci-investigation 视证据链复杂度选择
+- **5 维表 / 评分要求**：见父类 §Reviewer Rubric（不在此重复）
+
 ## 来源类型优先级（必读）
 
 web research 取证时，按以下优先级取来源：
