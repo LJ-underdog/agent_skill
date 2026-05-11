@@ -606,6 +606,12 @@ blockers: []                                   # REQUIRED — 未解决问题；
 ## 接手状态
 [lead 摘要 / 上一个 teammate 收尾存档]
 
+## 摘要（compaction 节，§8.1 配合）
+<!-- tool calls ≥12 时优先填此节供 lead 只读（替代硬切）；< 12 可省略 -->
+- 已完成事实：[1-3 句话]
+- 未决问题：[1-3 句话]
+- 下一步：[1-3 句话]
+
 ## 已完成 Items
 
 ### [#{XXX}] 标题
@@ -807,6 +813,24 @@ teammate progress front-matter `cost.tool_calls` 字段供 lead 程序化对账�
 
 - **BREAKING**：新 wave 必须在 `TEAM_CONFIG.md` 写 `## Budget` 节（fallback 仅作为旧 wave 兼容，新 wave 不写 = lead 应主动补全）
 - **向后兼容**：旧 wave（无 Budget 节）resume 时 lead 用 fallback 默认值继续，不阻塞，但收尾时建议 promote 一条「补 Budget 字段」task
+
+---
+
+## 8. Compaction & Tool-Result Clearing（Proposal-025，仅 §8.1）
+
+### 8.1 Teammate compaction（替代硬切，配合 §7 Context 保护多 axis）
+
+tool calls **≥12** 时，**优先 compaction** 而非硬切（§7 Context 保护规则原 ≥15 软警告 / ≥20 硬截断之前）：
+
+- teammate 生成「已完成事实 + 未决问题 + 下一步」3 段摘要写到 progress.md `## 摘要` 节（位置见 §Progress 文件格式 SHARED OUTPUT SKELETON）
+- lead 后续只读 `## 摘要` 节不读全文（节省 lead context）
+- 保留上下文连续性（不像硬切 → 下一 teammate 失去 context）
+
+**何时硬切而非 compaction**：tool calls 已 ≥20（硬截断阈值）/ wall-time ≥60 min（硬截断 escalate）时，直接收尾不再 compaction（已 stuck 状态 compaction 也救不回）。
+
+**业界依据**：Anthropic context engineering 三大对策之一 — compaction（总结后 reset）；与 structured note-taking（progress.md = 外部 file-based memory）+ sub-agent（本 skill 现有继承模型）配合。
+
+> §8.2 Lead 视角 selective load + §8.3 Tool-result clearing 暂不落地（待 Defer-006 触发后再扩展）。
 
 ---
 
