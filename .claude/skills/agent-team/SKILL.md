@@ -446,6 +446,14 @@ Resume wave 不重派已完成 teammate；不重读 L4 archival memory（节约�
 
 > 这 4 要素与上方 5 项「编号 / 收尾摘要 / item / WORK_DIR / DOC_DIR」**正交补充**：上方 5 项侧重协调与上下文，4 要素侧重**任务规约 + 边界 + 输出契约**。两者并存，不替代。
 
+#### 角色复用（templates/roles/ YAML 角色库 / Proposal-023, Wave 5）
+
+常用角色（reviewer / synthesizer / web-researcher / doc-editor / debug-investigator）prompt 已抽到 `templates/roles/<name>.yaml`，每文件含 frontmatter（name / description / tools / suggested_model / isolated_context / must_read_tiers）+ backstory + 红线。
+
+**Wave 派单时**：lead 可在 prompt 引用 `[Role: <name>]`（如 `[Role: reviewer]`），由 lead 拼装时 read `templates/roles/<name>.yaml` + 注入 wave 特化 item，避免每 wave 重写 5 项必备 prompt。
+
+**与现有 wave 兼容**：旧的 ad-hoc prompt 仍可用（**0 BREAKING**）；新 wave 优先用 `[Role: ...]` 引用。cross-ref §6 Model Routing（suggested_model 字段）/ §1 Memory 4-tier（must_read_tiers 字段）/ §Reviewer Rubric（reviewer.yaml 引用）。
+
 ### 接收结果后（每次立即）
 1. 读 `WORK_DIR/progress/teammate-{N}.md`
 2. 更新 `WORK_DIR/todo.md`（[x] / [!]，附结论一行）
