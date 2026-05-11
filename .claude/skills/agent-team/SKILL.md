@@ -950,3 +950,4 @@ tool calls **≥12** 时，**优先 compaction** 而非硬切（§7 Context 保�
 | 2026-04-25 | fp8-tp2-inference（PC-1） | 反模式：待验证假说不应放入 KNOWN_FACTS |
 | 2026-04-30 | 用户原则强化 | 新增 §0 铁则：Lead 不执行具体工作 + agent team 必须并行；反模式表新增 3 条对应项；Lead 行为规则 / Phase 1 加交叉引用 |
 | 2026-05-09 | agent-team-skill-specialization | 拆分父类/特化：新增 templates/{dev-debug,doc-edit,status-consolidation,ci-investigation}.md 4 个特化模板 + Workflow 0.5 选择器；从 SKILL.md 抽走 dev-debug 特化内容（阶段结构 / 验证顺序 / dev-debug 反模式 7 条），改 stub 引用 templates/<name>.md；Item 类型表扩充含模板专属类型；继承模型图升级为三层 |
+| 2026-05-11 | pr6914_bwd_repro | templates/dev-debug.md 新增 §validate-AND-falsify pair 子模式（competing-hypotheses 2-teammate 退化版）：单怀疑点场景同 message 派 validator + falsifier 显式 role split，互锁结论才接受根因。实证：T11(revert)/T12(static audit) 排除 PR mask；T13(dump)/T14(device printf) 锁定 ref runner shape OOB 根因 |

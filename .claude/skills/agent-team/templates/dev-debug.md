@@ -171,6 +171,27 @@ progress 文件里"结论"和"【未验证假设】"必须分开写，绝不混�
 - 本子模式 = read-heavy investigation（teammates 不直接写代码 / 不触发 parallel-writer 反模式）→ §0.3 自动适用
 - 反模式 #15 (collective delusion) 已防 reviewer-actor 同视角；本子模式 reviewer 红线在其上叠加 "challenge each other check"
 
+### 子模式变体：validate-AND-falsify pair（2-teammate 退化版）
+
+**Use when**：根因调查中冒出**单个**强怀疑点（如 "PR X 是致因" / "kernel Y 算错"），lead 倾向 anchor 但需独立验证。N=3+ 的 competing-hypotheses 过重，但单线 validate 又有 anchoring 风险。
+
+**做法**：同 message 派 **2 个 teammate**：
+- **validator**：用实验/数据**复现**该怀疑（如 revert 实验、dump 中间值复现 fail mode）
+- **falsifier**：用独立角度**证伪**该怀疑（如静态依赖审计、上下游 invariant 检查、反例构造）
+
+**接受规则**：两个 teammate 结论**互锁一致**才接受根因；validator 单独 PASS 而 falsifier 找到反例 → 必须重派 / 调整怀疑方向。
+
+**业界依据**：与 N-hypothesis competing 同源（Claude Code agent-teams 文档"the theory that survives is much more likely to be the actual root cause"），但显式 role split（validator vs falsifier）防止"两个 teammate 都用同向证据 anchoring"反模式。
+
+**实证（pr6914_bwd_repro wave）**：
+- T11 (revert 实验 validate) + T12 (静态 transitive 依赖审计 falsify) 互锁 → 排除 PR #6914 mask 致因（max_err bit-exact 不变 + bwd 0 调 IsOutOfSinkBound）
+- T13 (H1' 越界假设 validate via dump) + T14 (P0 warp broadcast falsify via device printf) 互锁 → 锁定 ref runner shape OOB 根因
+
+**不 use when**：
+- 根因明确（无需 falsify，直接 fix）
+- N≥3 个互斥 hypothesis（用上面的 N-hypothesis competing-hypotheses 变体）
+- writes-heavy 任务（用 contract-first 子流程）
+
 ---
 
 ## 子流程：contract-first（Proposal-017，多文件 / 多 component 协作场景）
