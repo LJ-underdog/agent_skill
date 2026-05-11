@@ -16,6 +16,31 @@ description: |
 
 ---
 
+## -1. 与官方 Claude Code subagent / agent-teams 的关系
+
+Claude Code 提供 2 个官方多 agent 产品，本 skill 是它们之外的**第 3 种选择**：
+
+| 工具 | 范围 | 通信 | 何时用 |
+|---|---|---|---|
+| 官方 subagent (`/agents`) | 单 session 内 fork | 不直接，仅 lead 中转 | 一次性 side task / 防上下文污染 |
+| 官方 agent-teams (experimental, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) | 跨 session | task-list + mailbox 直接通信 | 临时探索 / 不需要复杂模板继承 |
+| **本 skill (agent-team)** | 跨 session | 不直接，靠文件交换 + lead 中转 | 多 wave / 重 prompt 工程 / 需要严格 §0 铁则纪律 / 需要模板继承 |
+
+**本 skill 的核心增量**（相对官方 agent-teams）：
+- 三层继承模型（SKILL.md → templates/<name>.md → TEAM_CONFIG.md）
+- §0 铁则强约束（lead 不执行 / 必须并行 / writes single-threaded / self-report 不可信 / teammate 不递归 / lead 整 wave 不变）
+- Workflow 0.5 模板选择器
+- reviewer raise-only 模式 + Promotion 闭环
+
+**何时用官方而非本 skill**：
+- 任务 < 30 tool calls / 单 wave 即可完成
+- 不需要跨 wave promote 经验回父类
+- 简单的 multi-hypothesis 探索（不需要严格 §0 纪律）
+
+**继承官方约束**：本 skill 的 §0.5 / §0.6 与官方 subagent / agent-teams 文档明文要求**严格对齐**（无嵌套 / lead 不变 wave-lifetime），不引入与官方冲突的语义。
+
+---
+
 ## 0. 铁则（最高优先级，违反即取消本次 agent-team）
 
 ### 0.1 主 agent（Lead）不执行任何具体工作
