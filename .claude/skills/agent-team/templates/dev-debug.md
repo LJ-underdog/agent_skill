@@ -142,6 +142,28 @@ progress 文件里"结论"和"【未验证假设】"必须分开写，绝不混�
 
 ---
 
+## 子流程：contract-first（Proposal-017，多文件 / 多 component 协作场景）
+
+**Use when**：本 wave 涉及多文件 / 多 component 协作（如 storage + CLI + API 同时改 / 多个 teammate 实施同一 feature 的不同部分），且 interface（function signature / file path / data schema / error code）尚未冻结。
+
+**业界依据**：Cognition — "Treat specifications like API contracts"；Microsoft Swarm Diaries — "The fix was the single most impactful change in the entire project: contract-first planning"。两者实证 multi-writer code-gen 场景 contract-first 防 storage 用 JSON / CLI 用 SQLite 的接口冲突。
+
+**子流程**（在 Phase 0 后、Phase 1 前插入；不升 Phase 编号 / 不破坏 4-template 决策树）：
+
+1. Lead 派**单个** `[contract-define]` teammate 固定 interface（function signature / file path / data schema / error code 全部明示）
+2. Lead 走代码修改审批门复审 contract（与 Phase 2 fix 审批同流程，含 reviewer artifact spot-check ≥1/3）
+3. Contract APPROVE 后，Phase 1 并行派实施类 teammate（每个 teammate 拿同一 contract，独立 implementation）
+4. Phase 2 串行 integrator 汇总（writes single-threaded，§0.3 自动适用）
+
+**不 use when**：
+- 单 teammate 任务 / 单文件改动 → 跳过子流程，直接 Phase 0 → Phase 1
+- 已有冻结 interface（如改 bug 而非加 feature）→ 跳过子流程
+- read-heavy investigation（如 competing-hypotheses 子模式）→ 跳过子流程，writes 自动 single-threaded
+
+**与父类 §0.3 关系**：contract-first 是「先定 interface 再并行」的具体落地，§0.3 反模式表 #14 parallel-writer divergence 的预防手段之一（业界依据：Microsoft Swarm Diaries / Cognition narrow class）。
+
+---
+
 ## 调研 vs 执行 vs 验证 边界
 
 | 当前 item 类型 | 你能做 | 你不能做 |
@@ -265,13 +287,14 @@ blockers: []                                   <!-- REQUIRED — 空列表 = 无
 
 ## 4. Item Types
 
-**沿用父类默认三类**：`[调查]` / `[执行]` / `[验证]`。dev-debug 不引入新 item 类型。
+**沿用父类默认三类**：`[调查]` / `[执行]` / `[验证]`，**dev-debug 模板内**新增 `[contract-define]`（Proposal-017，仅 dev-debug 使用，不进父类 SKILL.md Item 类型表）。
 
 | 类型 | 说明 | 输出 | 允许的工具 |
 |------|------|------|-----------|
 | `[调查]` | 读代码 / 最小复现 / 中间值检测 / 提 fix 方案 | `progress/teammate-{N}.md` + `proposed_fix_{item}.md` | Read, Grep, Bash（只读或最小复现脚本） |
 | `[执行]` | 修改代码 / 写文件（仅 lead 明确批准的 fix） | `progress/teammate-{N}.md` + `before_fix_{item}.patch` 备份 + 修改行号记录 | Edit, Bash（受批准范围约束） |
 | `[验证]` | 完整测试矩阵：fix 路径 + baseline 回归 | `progress/teammate-{N}.md` + `DOC_DIR/04_verification.md` | Bash |
+| `[contract-define]` | dev-debug 子流程（Proposal-017）：固定 interface（function signature / file path / data schema / error code），单 teammate 串行，APPROVE 后 Phase 1 并行实施 | `progress/teammate-{N}.md` + `WORK_DIR/contract_{name}.md`（含完整 interface spec） | Read, Grep, Write |
 
 **关键边界**：
 - `[调查]` teammate **绝不直接改源码**（即使觉得 fix 显然）；只写 proposed_fix
