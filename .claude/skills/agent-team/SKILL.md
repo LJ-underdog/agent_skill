@@ -693,8 +693,36 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 | `[审计]` / `[编辑]` / `[评审]` | 文档审计、编辑、跨片一致性评审 | 详见 doc-edit 模板 §4 | Read, Grep, Edit | doc-edit |
 | `[拉日志]` / `[分析]` / `[实证]` / `[报告]` | CI raw log 取证、依赖归属实证、报告写作 | 详见 ci-investigation 模板 §4 | Bash (curl), Read, Grep, WebFetch | ci-investigation |
 | `[读]` / `[综合]` / `[评审]` | 多源 progress 摘录、综合 handoff、reviewer | 详见 status-consolidation 模板 §4 | Read, Grep | status-consolidation |
+| `[escalate]` | 需用户决策才能继续（task 方向冲突 / scope 模糊 / 需 user trade-off）；teammate 写 ESCALATION.md 触发 lead 立即向用户 raise（不等 wave 收尾） | progress + `{WORK_DIR}/ESCALATION.md` | Read, Write | 所有模板 |
 
 **模板可新增或屏蔽 Item 类型**，但所有模板都默认继承 `[调查]` / `[执行]` / `[验证]` 三类（除非模板 §4 显式覆盖）。
+
+### `[escalate]` vs `[!] Blocked` 区别（Proposal-015 / HITL escalation）
+
+- `[!] Blocked` = teammate 缺 evidence / 缺 access / 工具失败 → 需要补 evidence 或换 path（lead 派新 teammate 即可，不阻塞 wave）
+- `[escalate]` = teammate 发现 task 方向冲突 / scope 模糊 / 需要 user trade-off 决策 → lead 立即 raise 给用户，不能自己决策
+- **reviewer raise 致命问题**（如发现 baseline 跑错 model / proposal 草稿与用户原意偏离）属于 escalate，**不是** Blocked
+  （来源：MEMORY.md 「reviewer 妥协方案不可盲信」2026-05-09）
+
+### Escalate 触发协议（teammate 视角）
+
+teammate 发现 escalate 触发条件时：
+1. 在 `{WORK_DIR}/ESCALATION.md` 写：`## E-{编号}` + 触发原因 + 待 user 决策选项 (a)/(b)/(c) + 各自代价 + artifact 引用
+2. progress.md `status: blocked` + blockers 列 escalate 原因
+3. 收尾流程立即跑（不继续 next item）
+4. 收尾消息额外加 "**ESCALATE**: 见 ESCALATION.md E-{编号}"
+
+### Escalate 触发协议（lead 视角）
+
+lead 收到 teammate 收尾消息含 `ESCALATE` 标签时：
+1. **立即**读 `{WORK_DIR}/ESCALATION.md` 最新 E-{编号}
+2. **不**派新 teammate；**不**自己决策；**立即**向用户 raise（按 §Lead 行为规则 Approval Vocabulary 提供 4 选 1）
+3. 用户回复后再决定下一步（继续原 wave / 重派正确 task / close wave）
+
+**业界依据**：
+- AutoGen `HandoffTermination(target="user")`
+- LangGraph `interrupt() + checkpoint`
+- LangChain HITL: "Don't interrupt on reversible steps. Reserve it for irreversible, high-blast-radius, or regulated steps"
 
 ---
 
