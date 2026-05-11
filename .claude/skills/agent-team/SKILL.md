@@ -319,6 +319,25 @@ touch project_{name}/todo.md
 
 缺任何一条 → 不批准，加调查 item 补充。
 
+### Approval Vocabulary（typed user response）
+
+Lead 派高风险 item（risk ≥ medium：git push / commit / 改源码 / GPU verify / 跑 prod 命令）
+前，必须显式向用户 raise 4 选 1：
+
+| Token | 含义 | Lead 后续动作 |
+|---|---|---|
+| **APPROVE** | 按草案执行，不再 review | 立即派 teammate / 立即执行（无延迟） |
+| **EDIT: <patch>** | 改成这样后执行 | 应用 patch 后立即执行 |
+| **REJECT: <reason>** | 不执行 + 提供原因（不是「再想想」） | 写 todo 记录 + 不重试 |
+| **RESPOND: <question>** | 这是问答不是 approval gate | 回完继续 review |
+
+用户使用自由文本时，lead 必须先 normalize 到 4 个 token 之一再行动；
+歧义时反问「请明示 APPROVE / EDIT / REJECT / RESPOND」。
+
+**announcement-instead-of-action 反模式**：
+- lead 收到 APPROVE 后说「立即修正——」然后没动手 = 没修正 = 等同未 APPROVE
+- APPROVE 后必须**下一个 tool call** 即执行，不能再写任何"宣告"性文字
+
 ### 存档规律
 每处理 2 个 teammate 后写一次 `DOC_DIR/lead_progress.md`。
 
@@ -602,6 +621,7 @@ synthesizer 拼合 N 份 progress 时若发现某 teammate 缺 REQUIRED 节或�
 | Reviewer raise"致命"问题时盲信其妥协方案 | reviewer 视角 = 找最低执行成本；lead 视角 = 对齐用户真实任务目标。raise 多半是 task 方向修正信号，lead 应主动认错 / 派新 teammate 对齐目标，而不是按 reviewer 妥协方案继续跑（来源：tp2_verify_post_merge_wave 2026-05-09） |
 | #12 Format mismatch / 无 inter-teammate schema → synthesizer 静默吃错（teammate 漏写关键节、字段名漂移、单位不一致，synthesizer 拼合时 silent fail，下游 wave 拿错信号）| 强制 YAML front-matter（status / artifacts / cost / blockers REQUIRED）+ `<!-- REQUIRED -->` 节标记；synthesizer 必须 grep REQUIRED + 校验 front-matter，缺失即 raise，禁止 silent skip（参考 MAST 论文 37% coordination breakdowns；Proposal-013 / 来源 T3-Source-4 / 5 / 6）|
 | #14 Parallel-writer divergence（多 teammate 并行 Edit 同一文件 / 同一 deliverable / 同 component 不同部分，写入互相覆盖或风格不一致）| 写入串行：trivial 5-15 行 lead 自己 Edit；非 trivial → 派单 integrator teammate 串行汇总；多文件 → contract definer 先定 interface（违反 §0.3；来源：T3-Source-1 Cognition Flappy Bird / T3-Source-2 Cognition narrow class / T3-Source-6 Microsoft Swarm Diaries） |
+| #18 Announcement-instead-of-action（lead 收到 APPROVE 后说"立即修正——"/"现在执行——"然后没有 tool call 跟进 = 等同未 APPROVE）| APPROVE 后**下一个 tool call 即执行**，不写"宣告"性文字；APPROVE 与 tool call 之间不允许任何解释性段落（违反 Approval Vocabulary 节；来源：T4-Source-7 + MEMORY.md announcement-instead-of-action） |
 
 ---
 
