@@ -41,6 +41,84 @@ Claude Code 提供 2 个官方多 agent 产品，本 skill 是它们之外的**�
 
 ---
 
+## -0.5 调度方式优先级（tmux pane teammate vs in-process Agent tool）[BREAKING]
+
+本节定义 teammate **调度方式选择**（顶级 meta 决策，影响 wave 开始前的工具选择）。tmux 模式内部的**角色细则**（4-pane 角色表 / 持久化保证 / 临时角色 / refresh 协议 / 角色反模式）见 §9.6.5；**两节 single source of truth 分工**：§-0.5 = "用哪种调度方式"，§9.6.5 = "选 tmux 后角色怎么分"。
+
+本 skill 支持 **2 种** teammate 调度方式。**默认优先 tmux pane teammate**；in-process `Agent` tool 仅在窄场景退化使用。违反此优先级 = 反模式。
+
+### -0.5.1 对比表
+
+| 维度 | tmux pane teammate（**默认**） | in-process Agent tool（subagent_type=general-purpose） |
+|---|---|---|
+| **持久化能力** | ✅ 跨 wave 角色 / context 保留在 pane history（scrollback + claude session memory） | ❌ 每次 Agent 调用 fresh context，结束即销毁 |
+| **用户可见性** | ✅ 可 `tmux attach` 实时观察任何 pane 内子 claude 工作过程（工具调用 / 思考 / 输出全可见） | ❌ 黑盒 — 仅看到最终 return；lead 无法观察中间状态 |
+| **启动 overhead** | ❌ 子 claude 启动 3-8s（首次 pane setup + claude 加载）；后续派单仅 send-keys（<100ms） | ✅ Agent tool < 1s 启动 |
+| **并行能力** | ⚠️ 标准 3-pane teammate 容量（pane 1/2/3，pane 0=lead，§9.2）；可扩到 8-pane 但布局成本高 | ✅ 同 message 内 Agent tool call 无硬上限（推荐 ≤5 / §0.2） |
+| **适用场景** | 多 wave 长任务 / 角色固定 / 需视觉调试 / 教学演示 / 子任务有跨 wave 上下文依赖 | 一次性 fact-finding / 短查询 / 无持久化需求 / CI runner 无 tmux 环境 |
+| **何时不用此模式** | < 5 tool calls 的 trivial 查询；无 tmux 环境；需要 mailbox 协议（独立 session 不支持 SendMessage） | 默认情况下都不用（除非命中下方 §-0.5.2 退化触发条件 a/b/c/d） |
+
+> 表头详细解释 footnote：**持久化能力** = 跨 wave 边界 teammate 是否保留 context；**用户可见性** = lead 之外的 human user 能否实时观察 teammate 工作；**启动 overhead** = 单次 teammate 派单时的端到端 wall-time（含进程启动）。
+
+### -0.5.2 优先级规则（默认 tmux）
+
+**Lead 派单时按序判断**：
+
+1. **默认走 tmux pane teammate**（标准 4-pane 模板，4-pane 角色表见 §9.6.5.1）
+2. **退化为 in-process Agent tool** 仅当命中以下 ≥1 条：
+   - **(a)** 任务 < 5 tool calls 且**无需跨 wave 持久化**（如 grep 一个文件、读一个配置项）
+   - **(b)** 单次性 fact-finding（如"查这个 PR 的 CI 状态"）
+   - **(c)** 当前环境**无 tmux session**（CI runner / 容器内 / 远程 sandbox）
+   - **(d)** **同 wave 需 ≥ 4 个并行 teammate**（超 §9.2 标准 3-pane 容量）→ **混合模式**：3 个走 tmux pane（按 §9.6.5.1 持久角色分配），其余走 in-process Agent。混合派单 prompt 必须显式标注每个 teammate 的调度模式（如 `pane-2 (drafter, tmux)` / `agent-4 (fact-finder, in-process)`）
+
+派单前 lead **必须在派单 prompt 开头**显式声明走哪种模式：
+- tmux 模式：`"派给 pane-{N}（角色：{role}）..."`
+- in-process 模式：`"退化 in-process Agent，原因：(a)/(b)/(c)/(d)"`
+- 混合模式：每个 teammate 单独标，并说明命中 (d)
+
+未声明 = 默认 tmux（按 §-0.5.1 表"持久化" / "可见性"优势走）。
+
+### -0.5.3 持久化角色绑定
+
+**详见 §9.6.5.1 4-pane 角色表**（lead / auditor-patcher / drafter / architect-reviewer 4 角色 × pane 0/1/2/3 映射）。本节不重复表格内容（避免 §-0.5 与 §9.6.5 同步漂移）。摘要：**所有 pane 角色绑定为 wave 间持久**，跨 wave 不变；refresh 协议 / 临时角色覆盖见 §9.6.5.3-§9.6.5.4。
+
+### -0.5.4 派单时如何引用 pane 角色（lead prompt 模板示例）
+
+```bash
+# Lead 写派单 prompt 时，必须在开头声明 pane id + 角色：
+# 注意：以下 heredoc 内 <...> 均为占位符（lead 用实际内容替换，不要保留 <> 字面文本）
+cat > $WAVE/prompts/wave-N-pane-2.md <<'EOF'
+# Pane-2 任务（持久角色：drafter）— <任务标题>     ← <...> = 占位，lead 填实际内容
+
+你运行在 tmux pane `claudeteam:0.2`，持久角色 = **drafter**。
+本 wave 起在后续所有 wave 中持续承担此角色（起草类工作）。
+
+## 背景
+<引用 wave 间共享 context：可直接说"参考上 wave 你写的 progress/wave-{N-1}-pane-2.md"，
+ 因为 pane 2 的 claude session 还活着，能记得自己上 wave 做了什么>
+                                                  ← <...> = 占位，lead 填实际引用路径
+
+## 任务 / 红线 / Output
+<标准 5 项：编号 / 上 teammate 收尾摘要 / 本次 item / WORK_DIR+DOC_DIR / 红线>
+                                                  ← <...> = 占位，lead 填实际任务内容
+EOF
+
+tmux send-keys -t claudeteam:0.2 \
+  "请读取 $WAVE/prompts/wave-N-pane-2.md 并严格按其执行" Enter
+```
+
+**关键**：派单 prompt 标题里写"持久角色：{role}"是**契约**（pane 子 claude 借此自我定位 + 跨 wave 一致性自查）；lead 派给 wrong pane（如把 architect 任务派给 drafter pane 2）= 反模式。混合模式 (§-0.5.2 (d)) 派 in-process Agent 时不需 pane 角色字段，但 prompt 头部仍须标 `调度模式：in-process Agent，原因：(d) ≥4 并行`。
+
+### -0.5.5 业界依据 / cross-ref
+
+- **持久化**：与 Letta MemGPT "Core Memory" 在**功能上相似**（per-agent 持久 context），**实现机制不同**（Letta = 显式 RAG/scratchpad 写入；tmux pane = implicit scrollback + claude session memory）；两者都达成"agent 跨调用保留状态"目的但机制不可互换
+- **可见性**：Anthropic — multi-agent debugging「observability of subagent intermediate state is critical for production trust」；tmux attach = 100% observability
+- **退化触发条件 (a)(b)(c)**：与 §0.2 "< 2 teammate 不要走 wave" 同精神（小任务不上重框架）
+- **退化触发条件 (d) 混合模式**：与 Anthropic multi-agent 论文 "match agent count to task parallelism, not to framework capacity" 一致 — 不强行把 4-6 并行塞进 3-pane 容量
+- cross-ref：§0.6 Lead 整 wave 不变 / §9.2 Standard layout / §9.3 file-based 派单协议 / §9.6.5 tmux 模式角色细则 (single source of truth for 4-pane 角色表) / §9.7 Roundtrip smoke test
+
+---
+
 ## 0. 铁则（最高优先级，违反即取消本次 agent-team）
 
 ### 0.1 主 agent（Lead）不执行任何具体工作
@@ -898,6 +976,420 @@ tool calls **≥12** 时，**优先 compaction** 而非硬切（§7 Context 保�
 
 ---
 
+## 9. tmux Pane Visualization（手工方案 / 教学 & 调试用）
+
+本节定义**手工 tmux 多 pane** 模拟 agent-team 的方案 — lead 在主 pane 跑 `claude`，右侧 3 个 pane 各跑一个**独立** `claude` session，lead 通过 `tmux send-keys` + file-based prompt 派单，通过 `tmux capture-pane` 监控。**与官方 `teammateMode: "tmux"` 并行存在，互补而非替代**。
+
+### 9.0 Prerequisites & Bootstrap
+
+本小节给出"从零到 §9.2 标准布局可跑"所需的全部前置依赖、bootstrap 脚本、session 命名约定、wave 目录骨架以及子 pane 就绪检测，作为 §9.1-§9.6 的入口。**配置后必须先跑 §9.0.5 readiness 检测，再进入 §9.3 派单**。
+
+#### 9.0.1 前置依赖清单
+
+| 依赖 | 最低版本 / 路径 | 备注 |
+|---|---|---|
+| tmux | **≥ 3.0**（实测 3.4） | `split-window -p%` 百分比形式在 3.0+ 已**移除**，本节统一用 `-l <lines>` explicit lines；3.0 以下的 `'{right}'` / `'{bottom-right}'` target 也未完全稳定 |
+| claude CLI | `~/.local/bin/claude`（实测 `2.1.76`） | `which claude` 应能解析；若用 enterprise 部署，确认 `--dangerously-skip-permissions` 未被策略禁用 |
+| `~/.claude/container.env` | 含 `ANTHROPIC_*` + 4 个 model 锁定变量（OPUS/SONNET/HAIKU/SUBAGENT） | **裸 `KEY=value` 格式**（由 podman `--env-file` 加载）；裸 bash 下需 `set -a; source $ENV_FILE; set +a` 才能 export 给 tmux 子进程。`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` **仅官方 agent-teams 模式需要**；本 skill 的 tmux 手工模式不需要此环境变量（各 pane 是独立 claude session，不走 TeamCreate / mailbox 协议） |
+| 子 pane shell env | bash（默认） | 子 pane 是独立 shell 进程，**不**继承 lead claude 进程的内存态 env；必须在 bootstrap 脚本里先 source container.env，再 `tmux new-session` |
+
+**`IS_SANDBOX=1` 的语义**：container.env **不含**此变量，必须在子 pane 启动命令前 **inline export**。缺失会导致子 claude 在 tool call 阶段触发 host 权限检查并阻断；配合 `--dangerously-skip-permissions` 才能进入 §9.5 反模式表所述的"独立 session 自主工作"模式。两者缺一不可。
+
+#### 9.0.2 Session 命名约定
+
+| 场景 | session 名 |
+|---|---|
+| 单 wave（默认） | `claudeteam` |
+| 多 wave 并发隔离 | `claudeteam-<wave-id>`（如 `claudeteam-tmux_skill_wave2`） |
+| 调试 / 教学一次性 session | 任意，但建议保留 `claudeteam` 前缀方便 `tmux ls \| grep claudeteam` |
+
+**与 §0.6（Lead 整 wave 不变）配合**：一个 wave 独占一个 session；wave 收尾 → `tmux kill-session -t <name>`；切换 wave 前 close 旧 session，禁止跨 wave 复用 pane。
+
+#### 9.0.3 Wave 目录骨架
+
+Lead 在 Workflow 1 Step 4 (Instantiate) 阶段、**调用 bootstrap 之前**先创建：
+
+```bash
+WAVE_DIR=/home/junlin12/<wave-name>
+mkdir -p $WAVE_DIR/{prompts,progress,logs}
+```
+
+- `prompts/teammate-N.md` — lead Write 落盘的派单内容（§9.3 file-based 协议）
+- `progress/teammate-N.md` — teammate 自己写入的结果（与 §1 Memory Tier-3 Recall Memory 对应）
+- `logs/` — 可选的 `tmux pipe-pane` 持久化输出 / bootstrap 探测产物
+
+#### 9.0.4 Bootstrap 脚本（可直接 copy-paste）
+
+```bash
+#!/bin/bash
+# tmux agent team 最小 bootstrap (1 lead + 3 teammate)
+# 前置: §9.0.1 全部满足; WAVE_DIR 已 mkdir
+set -e
+SESSION=${SESSION:-claudeteam}
+ENV_FILE=$HOME/.claude/container.env
+
+# 1) 把 container.env 的裸 KEY=value 注入当前 shell, 让 tmux 子进程继承
+set -a; source $ENV_FILE; set +a
+
+# 2) 起 session, pane 0 = lead (左侧窄列)
+tmux new-session -d -s $SESSION -x 240 -y 68 \
+  "IS_SANDBOX=1 claude --dangerously-skip-permissions"
+
+# 3) 右侧切 167 列容器, 再上下切 3 个 teammate pane (与 §9.2 一致, 全部用 -l)
+tmux split-window -h -t $SESSION:0.0 -l 167 \
+  "IS_SANDBOX=1 claude --dangerously-skip-permissions"
+tmux split-window -v -t $SESSION:0.1 -l 34 \
+  "IS_SANDBOX=1 claude --dangerously-skip-permissions"
+tmux split-window -v -t $SESSION:0.2 -l 17 \
+  "IS_SANDBOX=1 claude --dangerously-skip-permissions"
+tmux select-pane -t $SESSION:0.0
+```
+
+**与 §9.2 的关系**：§9.2 假设 lead 已经在 `claudeteam:0` 主 pane 内手工 `claude`，只切右侧 3 pane；§9.0.4 用于**从零起 session**（lead 也作为脚本一部分启动）。两者命令风格、`-l <lines>` 数值、`IS_SANDBOX=1 claude --dangerously-skip-permissions` 启动串完全一致。
+
+**spawn 时序说明**：bootstrap 脚本 4 条 `tmux ... claude --dangerously-skip-permissions` 在脚本返回时**仅完成 tmux pane 创建 + 子进程 fork**；子 claude 自身从 fork 到进入 `❯` REPL idle 状态另需 **~3-8s**（node runtime 启动 + API key 校验 + sandbox 初始化）。**bootstrap 脚本退出 ≠ 子 REPL ready**，必须紧跟 §9.0.5 readiness 检测，不可直接进 §9.3 派单。
+
+#### 9.0.5 子 pane Readiness 检测（派单前必跑）
+
+子 claude 进程从 spawn 到 REPL prompt-ready 需要数秒；若 §9.3 第一次 `send-keys` 在此之前发出，输入会被 shell 吞掉而非进入 claude REPL。Lead 在 bootstrap 完成后、首次派单之前必须逐 pane 检测：
+
+```bash
+SESSION=${SESSION:-claudeteam}
+for p in 1 2 3; do
+  echo "=== pane $p readiness ==="
+  tmux capture-pane -t $SESSION:0.$p -p | tail -3
+done
+```
+
+**判定标准**：tail 输出中必须出现 `❯` idle 提示符（claude REPL 等待输入态）。若看到的是 shell `$` 提示符 → 子 claude 已退出（检查 API key / quota / `--dangerously-skip-permissions` 是否被策略拦）；若 tail 为空或显示 "Cogitated..." 进行中 → 再等几秒重抓。**3 个 pane 全部 `❯` 才算 §9.0 配置完成**，可进入 §9.1 决策与 §9.3 派单。
+
+**脚本化轮询变体**（自动等到全部 ready，适合 bootstrap → smoke test 串行流水）：
+
+```bash
+SESSION=${SESSION:-claudeteam}
+for p in 1 2 3; do
+  while ! tmux capture-pane -t $SESSION:0.$p -p | grep -q '❯'; do
+    sleep 2
+  done
+  echo "pane $p READY"
+done
+```
+
+→ readiness PASS 后跑 §9.7 smoke test 做端到端 roundtrip 验证，**确认 file → send-keys → 子 claude 响应链路真通**后再进 §9.3 真实派单。
+
+### 9.1 何时用 / 何时不用
+
+| 场景 | 用本方案 | 用官方 Agent / `teammateMode: "tmux"` |
+|---|---|---|
+| 演示 / 教学 / 实时观察多 teammate 工作 | ✅ | ❌（子进程不可见） |
+| 调试 agent-team 框架本身 | ✅ | ❌ |
+| 官方 `teammateMode: "tmux"` 在当前环境不生效 | ✅ 手工兜底 | — |
+| 单 teammate 任务 | ❌（开销大） | ✅ 直接 Agent tool |
+| 需要 mailbox / SendMessage / shutdown_request 协议 | ❌（独立 session 不支持） | ✅ |
+| 无人值守自动 wave / 自动重试 | ❌（独立 session 不共享 task list） | ✅ |
+
+### 9.2 标准布局命令（lead 在主 pane 跑一次）
+
+> bootstrap 命令（含起 session + spawn 4 个 `claude`）见 §9.0.4；本节聚焦布局参数推导逻辑（`-l <lines>` 数值由 240×68 终端 / 70+167 列 / 16/16/17 行实测得出）。
+
+```bash
+# 右侧 pane（167 列），再上下切 3 个
+tmux split-window -h -l 167 'bash'
+tmux split-window -v -t '{right}' -l 34 'bash'
+tmux split-window -v -t '{bottom-right}' -l 17 'bash'
+tmux select-pane -t 0
+
+# 每个右 pane 启动 interactive claude（sandbox + skip permissions）
+for p in 1 2 3; do
+  tmux send-keys -t claudeteam:0.$p \
+    "IS_SANDBOX=1 claude --dangerously-skip-permissions" Enter
+done
+```
+
+### 9.3 派单机制（file-based，禁止 multi-line 直传）
+
+```bash
+# 1) Lead 用 Write 工具把 prompt 落盘
+#    /home/junlin12/<wave>/prompts/teammate-1.md
+# 2) send-keys 触发子 claude Read 该文件
+tmux send-keys -t claudeteam:0.1 \
+  "请读取 /home/junlin12/<wave>/prompts/teammate-1.md 并执行" Enter
+
+# 3) 监控 / 收结果
+tmux capture-pane -t claudeteam:0.1 -p | tail -20      # 看 pane 输出
+cat /home/junlin12/<wave>/progress/teammate-1.md       # 读 teammate 写入
+```
+
+**为什么 file-based**：`send-keys` 对 multi-line / 含特殊字符的 prompt 极易失真（换行被吃 / quote 错位 / Enter 时机错乱）；落盘 + Read 把"派单内容"和"触发信号"解耦，与 §0.5 teammate 不递归派单铁则共享同一文件协议。
+
+### 9.4 与官方 `teammateMode: "tmux"` 的区别
+
+| 维度 | 本方案（手工） | 官方 `teammateMode: "tmux"` |
+|---|---|---|
+| pane 创建 | lead 手工 `split-window` | spawn teammate 时自动 |
+| session 关系 | 各 pane 独立 `claude` session | 同一 team / 共享 mailbox + task list |
+| 派单通道 | 文件 + `send-keys` | `Agent` tool / `SendMessage` |
+| Shutdown / mailbox 协议 | ❌ 不支持 | ✅ |
+| 可视化 | ✅ 100% 可见 | ✅（pane 内）|
+| 适用场景 | 教学 / 调试 / 兜底 | 生产 wave |
+
+**实测注意**：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 + teammateMode: "tmux"` 时，**`Agent` tool 仍走子进程模式**（不创建 pane），只有 `TeamCreate` + 显式 spawn 才会创建 pane。混用本方案不会冲突，但 lead 必须清楚二者 task list 不互通。
+
+### 9.5 反模式
+
+| 反模式 | 正确做法 |
+|---|---|
+| 把右 pane 子 claude 当作 agent-team 子类（期待它收 `SendMessage` / 接 `TeamCreate` task） | 当作**独立 session**对待；通过文件协议传递 prompt / progress |
+| `send-keys` 直接传 multi-line prompt | 永远先 Write 到 `prompts/teammate-N.md`，再 `send-keys` 触发 Read |
+| 派单后不 `capture-pane` 也不读 progress 文件，假设子 claude 一定在跑 | 至少 `tmux capture-pane \| tail` 一次确认进入工作状态；异常退出 lead 收不到通知 |
+| 用本方案跑无人值守长 wave | 改用 §0/§2 + 官方 Agent tool；独立 session 无 task list 不利于自动重试与 §0.6 lead 不变铁则 |
+| 多个 lead 共用同一 tmux session 互相 `send-keys` | 违反 §0.6 lead 整 wave 不变；每个 wave 独占一个 session |
+| Lead 自己 send-keys 到自己 pane 0（试图自派单） | lead pane 0 仅做协调（决策 / Write prompt / capture-pane / 读 progress）；执行类动作必须 send-keys 到 pane 1/2/3 任意 teammate pane；自派会让 lead REPL 收到自己派的 prompt 形成回路，且违反 §0.1 lead 不执行铁则 |
+| 调试时跑 `tmux split-window` 不带参数 / 不带 `-t target` → 创建孤立 bash pane 打乱 pane 编号 | 任何 `split-window` 必须显式 `-t $SESSION:0.X` 指定父 pane + 跟启动命令（`'bash'` 或 `'IS_SANDBOX=1 claude --dangerously-skip-permissions'`）；孤立 pane 会让 §9.0.4/§9.2 后续 `:0.1/:0.2/:0.3` 编号全部错位，readiness loop / 派单 target 都失效 |
+
+### 9.6 业界依据 / cross-ref
+
+- 与 §0.2（**Phase 1 同 message 派 ≥2 teammate**）正交：本节给的是**可视化呈现层**，并行原则仍由 lead 在主 pane 一次性触发多个 `send-keys`（同一 assistant turn 内连发，禁止"先发一个看效果"）。
+- 与 §0.5（**Teammate 不递归派单**）共享 file-based 协议：prompt / progress 都走 `<wave>/prompts/` 与 `<wave>/progress/` 目录约定。
+- 与官方 Claude Code `teammateMode: "tmux"` 文档互补；本节明确"手工方案 = 教学 / 兜底"，不取代官方模式作为生产路径。
+
+### 9.6.5 Persistent Role Assignment
+
+§9.0-§9.6 只规定 tmux 布局与派单协议。本节定义 **4-pane 角色映射 + 跨 wave 持久化保证**，让每个 pane 成为长生命周期专职 teammate。所有 cross-ref 集中在 §9.6.5.6。
+
+#### 9.6.5.1 标准 4-pane 角色表（SSOT）
+
+| Pane | 角色 | 职责 | 主要适用模板 |
+|---|---|---|---|
+| `:0.0` | **lead** | 决策 / 派单 / 读状态（§0.1 例外 5 类） | 全部 |
+| `:0.1` | **auditor + patcher** | 对照 review 改文档 / apply approved patch / commit-currency 校验 | dev-debug / doc-edit / ci-investigation |
+| `:0.2` | **drafter** | 起草新 prompt / 新节 / 新模板；synthesize 多源摘录 | doc-edit / status-consolidation |
+| `:0.3` | **architect + reviewer** | 框架级设计 / GPA 5 维 review / §0.4 artifact 抽查 ≥ 1/3 | 全部 |
+
+4 = 1 lead + 3 teammate（与 §9.2 标准布局对齐）。**本表是角色映射 single source of truth**；其他节（如 §-0.5）应 cross-ref 本表而非重复。
+
+#### 9.6.5.2 持久化保证
+
+跨 wave 复用同一 pane 给同一角色 → 子 claude 子进程 context history 不丢失 = 跨 wave 记忆。三条强制约束：
+
+1. **PID 不变 = context 不变**：wave 切换不 respawn / 不 `/clear`；bootstrap 仅首 wave 跑一次，后续 wave 直接复用
+2. **派单 prompt 必须显式触发角色记忆**：跨 wave 第 1 次派单 prompt 开头必须写 `你的持久化角色 = <role>（在所有 wave 中持续承担此角色，做 <职责简述> 类工作）。`，作为 self-anchor 防 role drift
+3. **Lead 在 TEAM_CONFIG.md 顶部声明 `## Pane Role Map`** 作为单源真相
+
+**`## Pane Role Map` schema 建议**（在 TEAM_CONFIG.md 模板新增）：
+
+```markdown
+## Pane Role Map
+
+| Pane | 持久角色 | 本 wave 临时角色 | refresh 状态 | GPA history（可选） |
+|---|---|---|---|---|
+| :0.0 | lead | — | — | — |
+| :0.1 | auditor+patcher | — / log-fetcher (wave-N) | — / refreshed @ wave-M | wave-N: 4.2 / wave-M: 4.5 |
+| :0.2 | drafter | — | — | — |
+| :0.3 | architect+reviewer | — | — | — |
+```
+
+- "本 wave 临时角色" 仅 wave 内有效；跨 wave 持续 ≥ 2 wave 应升格为持久变更（见 §9.6.5.3）
+- "GPA history" 可选；用于 §9.6.5.4 refresh 触发参考
+- 此节是单源真相，teammate prompt cross-ref 之
+
+#### 9.6.5.3 角色 vs 模板的关系
+
+`templates/<name>.md §3 Specialized Teammate Prompt Body` 应按角色分段（如 doc-edit §3：`pane-1 (auditor) / pane-2 (drafter) / pane-3 (reviewer)`）而非按抽象 `teammate-N`。
+
+**临时角色覆盖**：当模板需要的角色 ≠ 标准 4 角色（如 ci-investigation 需要 log-fetcher），允许临时复用 pane（如 pane-1 临时承担 log-fetcher），lead 必须在派单 prompt 显式声明：
+```
+你的持久化角色 = auditor + patcher，但**本 wave 临时角色 = log-fetcher**
+（理由：...；下 wave 回归 auditor）。
+```
+TEAM_CONFIG.md `## Pane Role Map` 同步注明。
+
+**若临时角色需跨 ≥ 2 wave 持续，应正式升格为持久角色变更**（在 TEAM_CONFIG.md `## Pane Role Map` 写明，并标 `effective wave-N onward`），避免长期"临时"侵蚀持久角色契约。
+
+#### 9.6.5.4 跨 wave Context Drift 风险 + Refresh 协议
+
+**风险**：pane 子 claude 跑 ≥ 5 wave 后 context 接近上限 → reasoning 退化 / tool call 截断。
+
+**触发信号**（lead 每 wave 收尾后检查；命中任一触发 refresh）：
+
+| # | 信号 | 类型 |
+|---|---|---|
+| 1 | pane 累计 wave 数 ≥ 5 | **hard**（数值） |
+| 2 | 单 wave 末 progress.md 出现 "context too long" / "truncated" / 子 claude 主动建议 `/compact` | **hard**（grep 可证） |
+| 3 | 该 pane 近期 reasoning 质量下降（如 GPA Logical Consistency 维度连续 2 wave ≤ 3、明显的指令遗漏 / 误读） | **soft**（reviewer 主观判断；GPA 历史可参考 TEAM_CONFIG.md `## Pane Role Map` GPA column 但非强制依据） |
+
+**Refresh 协议**（命中任一信号）：
+1. lead 派 `tmux send-keys -t claudeteam:0.N '/clear' Enter` 给该 pane → 子 claude 清空 context
+2. 下个 wave 第 1 次派单 prompt 开头**重注角色 + 最近 1-2 wave 关键决策摘要**（lead 从 WAVE_CLOSE.md 摘录 ≤ 10 行）
+3. TEAM_CONFIG.md `## Pane Role Map` 标 `refreshed @ wave-N`
+4. **Refresh 不重 bootstrap pane**（PID 不变 / 角色不变 / 仅 context 清）
+
+**Refresh 不适用于 lead pane**（§0.6 lead 整 wave 不变；跨 wave 换 lead 须走 WAVE_CLOSE 协议而非 `/clear` 短路）。
+
+#### 9.6.5.5 反模式（角色持久化特化）
+
+| 反模式 | 正确做法 |
+|---|---|
+| 每 wave 重 bootstrap / `respawn-pane -k` 销毁子 claude | 跨 wave 复用 PID；仅在子 claude 死或 §9.6.5.4 触发 refresh 时才动 pane |
+| 跨 wave 派单 prompt 省略"持久化角色 = X"开头 | 即使 context 仍在，显式声明 self-anchor 必加 |
+| 一个 wave 内动态在 4 pane 之间换角色 | 角色绑 pane / 不绑 wave；同 wave 内角色稳定 |
+| 给 reviewer pane（:0.3）派纯执行任务（如跑 baseline） | reviewer pane 应 read-heavy / isolated context；执行类派 :0.1 patcher 或 :0.2 drafter |
+| pane-1/2/3 互相 send-keys（cross-pane peer 通信） | 永远经 lead 中转；pane 之间通过 file-based progress 间接通信 |
+
+#### 9.6.5.6 业界依据 / cross-ref（集中）
+
+- §0.1（lead 不执行）：本节不改变 lead 行为；只给"派给谁"的稳定映射
+- §0.2（必须并行）：4 个固定角色 pane 同 message send-keys 天然 ≥ 2 并行
+- §0.4（self-report 不可信）：reviewer pane（:0.3）专职 artifact 抽查 ≥ 1/3
+- §0.6（lead 整 wave 不变）：本节扩展为"所有角色 pane 在 wave 边界尽量不变"
+- §9.0.4 bootstrap：起 4 pane 一次 → 本节定义 4 pane 长期分工
+- §9.4 手工 vs 官方 teammateMode：手工方案"独立 claude session"恰好是 persistent role 的基础设施
+- templates/`<name>`.md §3：模板 §3 应按角色（auditor / drafter / reviewer）分段
+
+### 9.6.6 Dispatch Completeness Checklist
+
+防 lead 派单遗漏 / send-keys 未送达 / wave 收尾时漏掉某 pane（wave3 实证 P0-A：pane-1 progress 缺失，lead 未察觉）。Lead 在每次派单前后必须执行三步闭环：
+
+#### 9.6.6.1 派单后立即落 dispatch.log
+
+每次 `tmux send-keys` 后**同 turn 内**追加一行到 `$WAVE/logs/dispatch.log`：
+
+```bash
+echo "[wave-$WAVE_ID] dispatched: pane-$N → $PROMPT_PATH @ $(date -Iseconds)" \
+  >> $WAVE/logs/dispatch.log
+```
+
+- 一行 / 一个 send-keys；多 pane 并行派单 → 多行
+- 时间戳用 `-Iseconds` 便于排查 send-keys 间隔（cross-ref §9.0.5 readiness）
+- **schema 锁定**：行首必须 `[wave-N] dispatched:`；新字段加在 `@ timestamp` 之后，不要插在行首；否则 §9.6.6.3 `grep -c '^\[wave-'` 对账 silent 失效。
+
+#### 9.6.6.2 派单后 receipt 确认（至少 1 次）
+
+派单完成后 lead 必须至少跑一次：
+
+```bash
+tmux capture-pane -t claudeteam:0.$N -p | tail -3
+```
+
+确认 send-keys 已被子 claude 接收（应看到 `❯ 请读取 .../prompt-path 并执行` 或子 claude 已开始 Read 提示）。**未确认 = 视为派单未送达**，按 §9.8 troubleshooting 排查（pane index 错 / 子 claude 死 / 派单 prompt 文件路径错）。
+
+#### 9.6.6.3 Wave 收尾对账
+
+Wave 收尾时（写 WAVE_CLOSE.md 前）lead 必须：
+
+```bash
+EXPECTED=$(grep -c '^\[wave-' $WAVE/logs/dispatch.log)        # 派单总数
+DELIVERED=$(ls $WAVE/progress/wave${WAVE_ID}-pane-*.md | wc -l) # 实际 progress 数
+[ "$EXPECTED" = "$DELIVERED" ] || echo "MISSING: $((EXPECTED - DELIVERED)) panes"
+```
+
+不一致 → 派 reviewer pane（:0.3）按 §9.6.5.5 反模式 #5 红线（不 send-keys 探询）改用 capture-pane 诊断；若确认 pane 仍工作中则延后 WAVE_CLOSE；若 pane 已死则记入 WAVE_CLOSE 的 "incomplete deliverables" 节。
+
+#### 9.6.6.4 反模式
+
+| 反模式 | 正确做法 |
+|---|---|
+| 派单后不写 dispatch.log，wave 收尾凭记忆数 pane | 每次 send-keys 同 turn 落 log；收尾按 §9.6.6.3 对账 |
+| 派单后不 capture-pane receipt，假设 send-keys 一定送达 | 至少 1 次 capture-pane tail；连续 3 个 pane 都不 capture = 反模式 |
+| 发现 pane progress 缺失就 send-keys 探询（violate §9.6.5.5 #5 / R4-F4 deadlock）| 用 `tmux capture-pane` 只读诊断；必要时 lead 自己派新 prompt 给该 pane（不允许 reviewer pane 越权 send-keys） |
+| **auditor apply 后仅 grep 节名/行号验证，不做语义 spot-check** | 落地后必须 ≥1/3 grep 语义关键字（如新增措辞 / schema 字段），与 §0.4 reviewer artifact 抽检规则对齐 |
+
+#### 9.6.6.5 cross-ref
+
+- §9.0.5 readiness：派单前；§9.6.6 receipt：派单后；§9.7 smoke：bootstrap 后整体验证 — 三者覆盖派单生命周期
+- §9.8 troubleshooting：receipt 失败的处置流程
+- §9.6.5.5 反模式 #5：cross-pane deadlock 禁令，§9.6.6.3 收尾对账时必须遵守
+
+### 9.7 Verification Roundtrip Smoke Test（setup 后必跑）
+
+**目标**：在 §9.2 布局 + §9.3 派单协议落地后，**派任何真实 teammate 之前**，先跑一次最小 roundtrip（file → send-keys → capture-pane → 子 claude 响应），验证目标 pane 的子 claude 处于 idle 且能正常 Read + 执行 prompt。失败则不要进入 §9.3 真实派单，先走 §9.8 Troubleshooting。
+
+**5 步可复制脚本**（以验证 `claudeteam:0.3` 为例，改 pane id 即可复用）：
+
+```bash
+WAVE=/home/junlin12/<wave>
+PANE=claudeteam:0.3
+mkdir -p $WAVE/prompts $WAVE/logs
+
+# 1) write 测试 prompt（让子 claude 回 ROUNDTRIP-OK + 用 $TMUX_PANE 自报 pane）
+cat > $WAVE/prompts/roundtrip_test.md <<'EOF'
+请执行一次：`bash -c 'echo "ROUNDTRIP-OK from pane $TMUX_PANE"'`
+然后回到 idle，不要做其他事。
+EOF
+
+# 2) 基线 capture（确认 pane idle、无残留 spinner / approval prompt）
+tmux capture-pane -t $PANE -p -S -5 > $WAVE/logs/pane3_before.txt
+tail -3 $WAVE/logs/pane3_before.txt   # 末行应为 `❯`
+
+# 3) send-keys 触发
+tmux send-keys -t $PANE \
+  "请读取 $WAVE/prompts/roundtrip_test.md 并执行" Enter
+
+# 4) 等待 + 二次 capture（实测 25s 内完成；首跑给 30s 余量）
+sleep 30
+tmux capture-pane -t $PANE -p -S -30 > $WAVE/logs/pane3_after.txt
+
+# 5) diff 看 ROUNDTRIP-OK 是否出现
+diff $WAVE/logs/pane3_before.txt $WAVE/logs/pane3_after.txt | grep -E 'ROUNDTRIP-OK|● Read'
+```
+
+**PASS 标准**（三条全满足才算通过）：
+
+| # | 检查项 | grep 关键字 |
+|---|---|---|
+| 1 | capture-after 含 `ROUNDTRIP-OK` 字样 | `ROUNDTRIP-OK` |
+| 2 | 含 `● Read` 工具调用痕迹（证明子 claude 真的读了 prompt 文件，不是把整段 send-keys 当文本回显） | `● Read` |
+| 3 | capture-after 末尾回到 `❯` idle 提示符（证明本 turn 已结束，pane 可继续接派单） | 末行 `❯` |
+
+**实测基线**（tmux_skill_wave2 pane3 实证 2026-05-22）：
+
+| 指标 | 实测 | 阈值 |
+|---|---|---|
+| send-keys → capture 含 ROUNDTRIP-OK | 25s（含 Read + Bash + 回 idle 全链路） | < 30s ✅ / > 60s ❌ 进 §9.8 |
+| 工具调用 (lead-side) | Bash×4 + Write×2 = 6（lead 在主 pane 跑的 capture/send-keys/diff/Write prompt） | 上限 10 |
+| 工具调用 (subclient-side) | TBD（pane-2 wave3 补测：子 claude 在被派 pane 内为完成 roundtrip prompt 实际 Read + Bash 次数） | 上限 5（roundtrip 本身极小） |
+
+> **超 60s 视为子 claude 卡住** → 不要再补 send-keys（会被当 mid-turn 反馈），转 §9.8 Troubleshooting 排查（mid-tool / plan mode / approval / 路径错）。
+
+**Caveat — pane index 漂移**：子 claude 内 `tmux display-message -p '#{pane_index}'` 默认返回 **client active pane** 而非 invoking pane（实测 send-keys 到 `:0.3` 但子 claude 自报 `pane 2`）。**自报 pane 必须用 `echo $TMUX_PANE` 或 `tmux display-message -t $TMUX_PANE -p '#{pane_index}'`**。不影响协议本体（lead 只要 send-keys target 写对，prompt 就送达正确 pane），但若 PASS 标准 #1 的 echo 用 `display-message` 写法，diff 会出现"pane 号对不上"的假告警，误判 roundtrip 失败。
+
+**业界依据 / cross-ref**：
+- 与 §0.4（**Teammate self-report 不可作为 ground truth**）一致：PASS 不靠"子 claude 说 OK"，靠 lead 的 capture-pane diff 客观证据
+- 与 §9.3 file-based 派单协议同构（同一目录约定 + 触发机制），smoke test 复用真实派单的所有基础设施
+- 失败排查清单见 §9.8 Troubleshooting
+
+### 9.8 Troubleshooting
+
+§9.7 smoke test 失败、或 wave 中途 roundtrip 异常时，按下表对照症状 → 诊断 → 修复。所有诊断命令都是**只读**的（`list-panes` / `capture-pane` / `show-environment`），可放心执行。
+
+| 症状 | 诊断 | 修复 |
+|---|---|---|
+| `send-keys` 后 `capture-pane` 看不到 prompt 文本出现在子 pane | `tmux list-panes -t claudeteam -F '#{pane_index} #{pane_current_command}'` 看 pane index 是否正确、对应进程是否是 `node`/`claude` 而非 `bash` | 校正 `claudeteam:0.N` 中的 N；若是 bash 说明子 claude 已退出，按下一行处理 |
+| 子 pane 显示 bash prompt 而非 ❯（子 claude 进程死了） | `tmux list-panes -F '#{pane_pid} #{pane_current_command}'` 确认；查 `~/.claude/logs/*.log` 是否 OOM / API 错误 | `tmux respawn-pane -t claudeteam:0.N -k 'IS_SANDBOX=1 claude --dangerously-skip-permissions'` 原地重启该 pane，不破坏布局 |
+| 子 pane 报 `Command not found: claude` | `tmux send-keys -t claudeteam:0.N 'which claude; echo $PATH' Enter` 后 capture | 在 `~/.bashrc` 加 `PATH`，或 respawn 时用 absolute path（如 `/home/junlin12/.local/bin/claude`） |
+| 子 claude 收到 prompt 但无响应（pane 显示派单文本但无 `●` 工具调用） | `tmux capture-pane -t claudeteam:0.N -p \| tail -20` 看是否卡在 permission prompt / plan mode / 上一 turn 未结束 | 补一个 `tmux send-keys -t claudeteam:0.N '' Enter` 单独送 Enter；仍无响应则 respawn pane，确认启动 flag 含 `--dangerously-skip-permissions` |
+| `send-keys` 多行 prompt 被截断 / 乱码 / quote 错位 | 反模式 — `send-keys` 对 multi-line 不可靠（§9.3 / §9.5） | 永远 Write 到 `<wave>/prompts/pane-N.md` + 单行 `send-keys "请读取 /abs/path 并执行"`（file-based 协议） |
+| 子 claude API 报 401 / 403 / "missing key" | `tmux send-keys -t claudeteam:0.N 'env \| grep -i anthropic' Enter` 后 capture；或 `tmux show-environment -t claudeteam` | 启 pane 前 `set -a; source ~/.claude/container.env; set +a`；或在 `~/.bashrc` 持久化（参考 §9.0 Prerequisites 环境变量清单） |
+| `capture-pane` 截到的输出被刷掉（scrollback 不够） | `tmux capture-pane -p -S -200` 加大回溯仍不够 = 已被 ring buffer 覆盖 | 派单前 `tmux pipe-pane -t claudeteam:0.N -o 'cat >> <wave>/logs/pane-N.log'` 持久化全程输出，long-running wave 必备 |
+| `tmux: no server running` / session 不存在 | `tmux ls` 看 server 是否起、`claudeteam` session 是否在 | `tmux new-session -d -s claudeteam`，再按 §9.2 重做布局；多 wave 并发时用 `claudeteam-<wave-name>` 避免冲突（§9.0 命名约定） |
+| 子 pane index 自报值与 lead target 不一致（如 lead `send-keys -t :0.3` 子 claude 自报 pane 2） | `tmux display-message -p '#{pane_index}'` 默认作用于 client 的 active pane，非 invoking pane | 子 claude 内自报 pane id 用 `echo $TMUX_PANE` 或 `tmux display-message -t "$TMUX_PANE" -p '#{pane_index}'`；不影响 lead 派单正确性 |
+
+#### Teardown
+
+Wave 完成后清理（cross-ref §0.6 lead 整 wave 不变 / wave 边界换 session）：
+
+```bash
+# 1) 归档 logs（如启用 pipe-pane 持久化）—— progress/ 文件按 §1 Memory tier 保留策略处理
+ls /home/junlin12/<wave>/logs/
+
+# 2) 关闭整个 tmux session（连同 4 pane + 子 claude 进程）
+tmux kill-session -t claudeteam
+```
+
+下一 wave 起新 session（`claudeteam-<next-wave>`），不复用旧 session 的 pane —— 与 §0.6 "lead 整 wave 不变 / wave 边界换 session" 一致。
+
+---
+
 ## 反模式表（通用，父类维护）
 
 本表只维护**所有模板共享**的通用反模式。**dev-debug / doc-edit / status-consolidation / ci-investigation 模板各自的特化反模式见各 templates/<name>.md §6 Specialized Antipatterns。**
@@ -957,3 +1449,5 @@ tool calls **≥12** 时，**优先 compaction** 而非硬切（§7 Context 保�
 | 2026-05-11 | pr6914_bwd_repro | templates/dev-debug.md 新增 §validate-AND-falsify pair 子模式（competing-hypotheses 2-teammate 退化版）：单怀疑点场景同 message 派 validator + falsifier 显式 role split，互锁结论才接受根因。实证：T11(revert)/T12(static audit) 排除 PR mask；T13(dump)/T14(device printf) 锁定 ref runner shape OOB 根因 |
 | 2026-05-13 | stepfun_fp8_fmoe_wave2 doc-impl | 反模式表新增 #22 Plan 假设 silent 升格 / caveat-stripping — 与 #15/#20 正交的第三类失败模式：reasoned-but-unverified 推断在 wave 内 phase 链条上自动升格为事实。含 4 条 lead-level 对策（调查 prompt 加 grep 红线 / synth 必须保留 caveat / reviewer 不破 #15 改派独立 sanity-check 子任务 / lead 显式问外部引用是否实证）。实证：doc-impl 在 16/RESULTS.md (gfx950) §四-B 加反向 cross-link 指向 wave2 (gfx942) — 跨硬件代际 cross-link，user 挑穿后修正措辞 + 加硬件 axis 澄清段 |
 | 2026-05-15 | step35_vllm_repro Wave DOC-1 | 反模式表新增 3 条 push-target 类反模式：#23 Push target 自动 default branch（lead 未派 recon 调研 branch 结构 → 错 push 到 main 而非 chore/restructure-toplevel 重构主线）；#24 Push 前 review 仅看文档内容不查 target convention（reviewer 5 维 GPA 漏第 6 维 plan-adherence-to-target-convention，落地后才发现 NN_topic/ vs flat-file convention 不一致）；#25 Staged 蓝图文件混入 commit（lead 用蓝图模式避 git index 冲突，但 push teammate 未明示"蓝图非 commit"红线导致 README_patch.md / CODE_CHANGES_patch.md 直接 cp 进 repo）。三条均含正面对策：Push 类 wave 必前置 recon teammate / reviewer 扩 5+1 维 / push prompt 显式蓝图清单红线 |
+| 2026-05-22 | tmux_skill_integration_wave | 新增 §9 tmux Pane Visualization 节 — 手工 tmux 多 pane 方案文档化（split-window 布局 / send-keys 派单 / capture-pane 监控 / file-based prompt 协议）+ 与官方 `teammateMode: "tmux"` 对比表 + 5 条反模式 + 何时用 / 不用决策表；4 个 templates（dev-debug / doc-edit / status-consolidation / ci-investigation）§1 Phase Plan 末尾各加一行"实时观察（可选）"cross-ref 指向父类 §9 |
+| 2026-05-22 | tmux_skill_wave2 | §9 扩充 setup 闭环（4 个新小节）：§9.0 Prerequisites & Bootstrap（tmux ≥ 3.0 / claude CLI / container.env / IS_SANDBOX 语义 + session 命名约定 + wave 目录骨架 + bootstrap 脚本 + readiness 检测）；§9.7 Verification Roundtrip Smoke Test（5 步可复制脚本 + 3 条 PASS 标准 + 实测 25s 基线 + pane index 漂移 caveat）；§9.8 Troubleshooting（9 行症状→诊断→修复表 + Teardown）。实证基础：本 wave 3 个 tmux pane teammate 实跑 setup → roundtrip → 起草 3 节 draft，全链路真 tmux send-keys 派单 + capture-pane 验证 |
