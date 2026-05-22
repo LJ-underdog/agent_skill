@@ -1077,6 +1077,26 @@ done
 
 → readiness PASS 后跑 §9.7 smoke test 做端到端 roundtrip 验证，**确认 file → send-keys → 子 claude 响应链路真通**后再进 §9.3 真实派单。
 
+### 9.0.6 statusLine（推荐：每 pane 显示 context% + cost）
+
+多 pane 并行时 lead 需快速判断每个 teammate 的 context 余量 + 累计 cost 才能决策是否 refresh（§9.6.5.4）/ 是否继续派单。给 `~/.claude/settings.json` 加 `statusLine` 字段（顶层，与 `permissions` 平级），所有 pane 实时渲染（settings hot-reload，不必重启已运行的 claude）：
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "python3 -c 'import json,sys,os; d=json.load(sys.stdin); m=d.get(\"model\",{}).get(\"display_name\",\"?\"); ctx=(d.get(\"context_window\") or {}).get(\"used_percentage\") or 0; cost=(d.get(\"cost\") or {}).get(\"total_cost_usd\") or 0; cwd=os.path.basename((d.get(\"workspace\") or {}).get(\"current_dir\",\"\") or d.get(\"cwd\",\"\")); print(f\"[{m}] ctx {ctx}% | ${cost:.2f} | {cwd}\")'"
+}
+```
+
+渲染示例（每 pane 底部一行）：`[claude-opus-4-7] ctx 43% | $28.28 | junlin12`
+
+**字段来源**（stdin JSON schema，官方）：
+- `context_window.used_percentage` — input-only 百分比（首次 API call 前为 `null`，已用 `// 0` 兜底）
+- `cost.total_cost_usd` — client-side 估算，不反映 AMD Gateway 实际 charge-back（实际 charge 走 `llm-usage` skill 查 UsageStats）
+- `model.display_name` / `workspace.current_dir`
+
+**用 `python3` 而非 `jq`**：tmux pane 标准环境可能无 `jq`；如装了 `jq` 可换为单行 jq 命令。亦可用 `npx -y ccusage statusline` 拿更丰富的 burn-rate 数据（要联网 npm registry）。
+
 ### 9.1 何时用 / 何时不用
 
 | 场景 | 用本方案 | 用官方 Agent / `teammateMode: "tmux"` |
