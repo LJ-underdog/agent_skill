@@ -11,6 +11,7 @@
 | [agent-team](./claude/skills/agent-team/SKILL.md) | "start agent team", "用 agent team" | 将复杂任务分解给多个 Claude 子 agent 并行执行 |
 | [project-summary](./claude/skills/project-summary/SKILL.md) | "write project summary", "做任务总结" | 为工程任务生成可验证的文档记录 |
 | [dev-pipeline](./claude/skills/dev-pipeline/SKILL.md) | "do a full pipeline", "dev pipeline" | 结构化开发流程：brainstorm → spec → plan → execute |
+| [rocm-kernel-design](./rocm-kernel-design/SKILL.md) | "rocm-kernel-design", "设计/优化 ROCm/CK/aiter/HIP kernel" | 证据驱动的 ROCm（CDNA gfx942/gfx950）kernel 实现与调优：规格契约 → draft 闸门 → 单点试验环（每候选对拍+benchmark+三道闸门）→ 证据账本；内嵌 GPU/git 纪律、rocm-ref 硬件核对、cos_sim 验证 |
 
 ---
 
