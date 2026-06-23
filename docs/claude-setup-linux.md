@@ -11,13 +11,15 @@
 
 | 项目 | 值 |
 | --- | --- |
-| Claude Code 版本 | `2.1.76`（当前机器在用，与 AMD 网关兼容） |
+| Claude Code 版本 | `2.1.160`（当前机器在用，与 AMD 网关兼容） |
 | API Base URL | `https://llm-api.amd.com/Anthropic` |
 | API Key（占位） | `dummy` |
 | AMD LLM Gateway Key | `<YOUR_AMD_GATEWAY_KEY>` |
-| 默认模型（Opus/Sonnet/Haiku 全部） | `claude-opus-4-7` |
+| Opus 模型 | `claude-opus-4-8[1m]` |
+| Sonnet 模型 | `claude-sonnet-4-6[1m]` |
+| Haiku 模型 | `claude-haiku-4-5` |
 
-> ⚠️ AMD 网关目前只放出 `claude-opus-4-7`，`sonnet-4.6` / `haiku-4.5` 在网关上会 403。把三个 `*_MODEL` 都设成 `claude-opus-4-7` 是当前机器实际能跑的写法。
+> 说明（2026-06 网关实测）：`claude-opus-4-8`、`claude-sonnet-4-6`、`claude-haiku-4-5` 现在都可用（旧版文档说 sonnet/haiku 会 403 已过时）。旧名 `claude-opus-4-7` 网关会**别名到 `claude-opus-4-8`**，所以直接写 `4-8` 即可。`[1m]` 后缀是 **Claude Code 侧的 100 万上下文记法**（写在 `*_MODEL` 环境变量里有效）；**raw curl 自测要用不带 `[1m]` 的名字**（带 `-1m` 的原始模型名网关会 400）。网关放出的模型会变，落地前用第三节的 curl 自测当前能用哪个。
 
 ---
 
@@ -28,7 +30,7 @@
 官方 installer（推荐，会装到 `~/.local/share/claude/versions/<ver>/`，并在 `~/.local/bin/claude` 创建软链）：
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash -s 2.1.76
+curl -fsSL https://claude.ai/install.sh | bash -s 2.1.160
 ```
 
 安装后 `claude` 是一个 ELF 可执行文件，**不依赖 Node.js**。
@@ -56,11 +58,11 @@ export AMD_LLM_GATEWAY_KEY="<YOUR_AMD_GATEWAY_KEY>"
 export ANTHROPIC_API_KEY="dummy"
 export ANTHROPIC_BASE_URL="https://llm-api.amd.com/Anthropic"
 export ANTHROPIC_CUSTOM_HEADERS="Ocp-Apim-Subscription-Key: ${AMD_LLM_GATEWAY_KEY}"
-export ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-opus-4-7
-export ANTHROPIC_DEFAULT_SONNET_MODEL=claude-opus-4-7
-export ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-7
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-8[1m]"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-4-6[1m]"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="claude-haiku-4-5"
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-export CLAUDE_CODE_SUBAGENT_MODEL="${ANTHROPIC_DEFAULT_OPUS_MODEL}"
+export CLAUDE_CODE_SUBAGENT_MODEL="claude-opus-4-8"
 export CLAUDE_CODE_TMPDIR="/tmp/claude-${USER}"
 ```
 
@@ -113,12 +115,12 @@ curl -sS -X POST https://llm-api.amd.com/Anthropic/v1/messages \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
   -H "Ocp-Apim-Subscription-Key: $AMD_LLM_GATEWAY_KEY" \
-  -d '{"model":"claude-opus-4-7","max_tokens":20,"messages":[{"role":"user","content":"ping, reply with one word"}]}'
+  -d '{"model":"claude-opus-4-8","max_tokens":20,"messages":[{"role":"user","content":"ping, reply with one word"}]}'
 ```
 
 期望：返回类似
 ```json
-{"model":"claude-opus-4-7", ... "content":[{"type":"text","text":"pong"}], ...}
+{"model":"claude-opus-4-8", ... "content":[{"type":"text","text":"pong"}], ...}
 ```
 
 如果返回 `401` → key 错；返回 `403 Access to model ... not available` → 模型名错；返回 SSL/证书错 → 看下文 TLS 排查。
@@ -126,7 +128,7 @@ curl -sS -X POST https://llm-api.amd.com/Anthropic/v1/messages \
 ### 2. 验证 Claude Code 跑得通
 
 ```bash
-claude --version          # 应输出 2.1.76 (Claude Code)
+claude --version          # 应输出 2.1.160 (Claude Code)
 claude -p 'say hi in one word'   # 应输出一个词，例如 "Hi"
 ```
 
@@ -137,10 +139,10 @@ claude -p 'say hi in one word'   # 应输出一个词，例如 "Hi"
 ## 四、常见问题
 
 ### Q1：`403 Access to model [X] is not available`
-模型名和网关不匹配。**当前 AMD 网关只有 `claude-opus-4-7` 能用**，三个 `*_MODEL` 都填它。
+模型名和网关不匹配。2026-06 网关实测可用：`claude-opus-4-8`、`claude-sonnet-4-6`、`claude-haiku-4-5`（旧名 `claude-opus-4-7` 会别名到 `4-8`）。用第三节的 curl 确认当前哪个能用，再填进 `*_MODEL`。
 
 ### Q2：TLS / 证书错（`self-signed certificate`、`unable to verify the first certificate`）
-Claude Code 用的 Node.js 不读系统信任库，需要装 AMD 根证书并指给它：
+Claude Code 的内置运行时不读系统信任库（即使现在是原生 ELF 也一样），需要装 AMD 根证书并用 `NODE_EXTRA_CA_CERTS` 指给它：
 
 ```bash
 # RHEL / CentOS / Fedora
@@ -167,7 +169,7 @@ export CLAUDE_CODE_MAX_RETRIES=20
 
 ### Q4：在 Docker 容器里也想用
 参考当前机器 `~/.claude/projects/-home-junlin12/memory/MEMORY.md` 里 `Skill: docker-install-claude` 一节，要点：
-- 把宿主机 `~/.local/share/claude/versions/2.1.76` 整个 cp 进容器
+- 把宿主机 `~/.local/share/claude/versions/2.1.160` 整个 cp 进容器
 - 写 `/root/.claude-env` 包含上面那一坨 `export`
 - `docker run` 时加 `-e BASH_ENV=/root/.claude-env`（`bash -c` 不读 `.bashrc`，必须用 `BASH_ENV`）
 
@@ -193,12 +195,12 @@ echo "SUBAGENT_MODEL:   $CLAUDE_CODE_SUBAGENT_MODEL"
 
 ```
 claude:           /home/<user>/.local/bin/claude
-version:          2.1.76 (Claude Code)
+version:          2.1.160 (Claude Code)
 BASE_URL:         https://llm-api.amd.com/Anthropic
 API_KEY:          dummy
 GATEWAY_KEY len:  32  (应为 32)
-OPUS_MODEL:       claude-opus-4-7
-SONNET_MODEL:     claude-opus-4-7
-HAIKU_MODEL:      claude-opus-4-7
-SUBAGENT_MODEL:   claude-opus-4-7
+OPUS_MODEL:       claude-opus-4-8[1m]
+SONNET_MODEL:     claude-sonnet-4-6[1m]
+HAIKU_MODEL:      claude-haiku-4-5
+SUBAGENT_MODEL:   claude-opus-4-8
 ```
