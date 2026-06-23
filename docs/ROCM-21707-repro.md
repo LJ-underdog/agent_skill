@@ -78,30 +78,41 @@ git reset --hard f000f7786e9ac67510549f4d17784d327705e295
 git log -1 --oneline                  # 确认 HEAD = f000f7786e
 ```
 
-### B2. 配置(Ninja)+ 只编 bwd(挂的是 bwd,fwd 是过的,省时间)
+### B2. 配置 + 只编 bwd(挂的是 bwd,fwd 是过的,省时间)
 
+**优先:用官方脚本 `script/cmake-ck-dev.sh`(自带全套 CK 必需 flags + 清 cache)。**
+两个坑必须避:① 它默认 `GPU_TARGETS=gfx908;gfx90a;gfx942`,**必须把 gfx950 作为参数传**;② 它的 `dev` preset **没指定 generator → 默认 Makefile**,要 Ninja 用 `CMAKE_GENERATOR=Ninja` 强制。
+
+```
+cd /home/amd/rocm-libraries/projects/composablekernel
+CMAKE_GENERATOR=Ninja bash script/cmake-ck-dev.sh . gfx950
+# 若 clang 不在 /opt/rocm/llvm/bin/,在上一行末尾追加:
+#   -DCMAKE_CXX_COMPILER="$CLANGXX" -DCMAKE_HIP_COMPILER="$CLANGXX"
+
+ls build/build.ninja && echo "OK: Ninja"     # 有=Ninja;若只有 build/Makefile 说明 Ninja 没生效
+cd build
+# 并发别用满核:fmha bwd 实例(尤其 maxk_256)单 TU 吃几 GB,满核会 OOM 被 kill。
+ninja -j 32 tile_example_fmha_bwd            # 若是 Makefile:make -j 32 tile_example_fmha_bwd
+# (可选,完整复现 fwd 两条才需要;fwd 不挂)  ninja -j 32 tile_example_fmha_fwd
+```
+
+**备选:不想用脚本就显式 cmake(已补齐 preset 里的 CK 必需 flags)。**
 ```
 mkdir -p projects/composablekernel/build && cd projects/composablekernel/build
 cmake -G Ninja \
       -DBUILD_DEV=ON -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS="-O3 -ftemplate-backtrace-limit=0" \
+      -DCMAKE_CXX_FLAGS="-O3 -ftemplate-backtrace-limit=0 -Wno-gnu-line-marker -fbracket-depth=1024 -fPIE" \
       -DGPU_TARGETS=gfx950 \
-      -DCMAKE_CXX_COMPILER="$CLANGXX" \
+      -DCMAKE_CXX_COMPILER="$CLANGXX" -DCMAKE_HIP_COMPILER="$CLANGXX" \
       -DCMAKE_PREFIX_PATH=$ROCM \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-
-# 并发别用满核:fmha bwd 实例(尤其 maxk_256)单 TU 吃几 GB,满核会 OOM 被 kill。
-# -j 32 是稳妥起点;若 dmesg/日志出现 OOM-killed,降到 -j 16。
 ninja -j 32 tile_example_fmha_bwd
-
-# (可选,只有要完整复现 fwd 那两条命令时才编;fwd 不挂)
-# ninja -j 32 tile_example_fmha_fwd
 ```
+
 说明:
-- 只编 `tile_example_fmha_bwd`,省掉 fwd 那批实例。
-- 用了 Ninja(比 Makefile 快);去掉了 `CMAKE_VERBOSE_MAKEFILE`(Ninja 下无效且刷屏)。
-- `BUILD_DEV=ON` 与 SQA 一致;**若配置/编译因 `-Werror` 类警告报错,改 `-DBUILD_DEV=OFF` 再来**。
-- bwd 目标编译约几十分钟(取决于 -j 和机器),正常。
+- 只编 `tile_example_fmha_bwd`,省掉 fwd 那批实例;`-j 32` 防 OOM(出现 OOM-killed 降到 `-j 16`)。
+- `dev` preset 的 flags 比手写的全(含 `-fbracket-depth=1024 -Wno-gnu-line-marker`),所以优先用脚本。
+- `BUILD_DEV=ON` 与 SQA 一致;**若因 `-Werror` 类警告报错,加 `-DBUILD_DEV=OFF` 再来**。
 
 ---
 
