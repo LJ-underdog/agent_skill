@@ -44,28 +44,64 @@ grep PRETTY_NAME /etc/os-release
 
 ## B. 编译 CK(失败的那个 commit)
 
+### B0. 环境 + 预检(全部秒级,失败立刻停,别白等 37 分钟)
+
 ```
-export ROCM=/opt/rocm                 # 若 A 步看到的是 /opt/rocm-7.14.0,改成它
+export ROCM=/opt/rocm                 # 若 A 步是别的路径就改这里
 export PATH=$ROCM/bin:$PATH
 export LD_LIBRARY_PATH=$ROCM/lib:$LD_LIBRARY_PATH
 
+# 自动探测 clang++(两种常见布局)
+CLANGXX=$(ls $ROCM/llvm/bin/clang++ $ROCM/lib/llvm/bin/clang++ 2>/dev/null | head -1)
+echo "CLANGXX=$CLANGXX"                # 必须非空,否则下面别往下走
+"$CLANGXX" --version | head -1
+
+# ninja(更快;AmazonLinux 没有就装)
+command -v ninja >/dev/null || sudo dnf install -y ninja-build
+ninja --version
+
+# GPU 可见
+rocminfo | grep -m1 gfx950
+
+# 内存够不够(每个重 TU 可能吃几 GB,据此定 -j)
+free -g | awk '/Mem:/{print "RAM total/avail(GB): "$2"/"$7}'
+```
+
+### B1. 取源码(建议全新 clone;先确认没有 nightly 正在用 /home/amd/rocm-libraries)
+
+```
 cd /home/amd
-[ -d rocm-libraries ] || git clone -b develop https://github.com/ROCm/rocm-libraries rocm-libraries
+rm -rf rocm-libraries
+git clone -b develop https://github.com/ROCm/rocm-libraries rocm-libraries
 cd rocm-libraries
 git reset --hard f000f7786e9ac67510549f4d17784d327705e295
+git log -1 --oneline                  # 确认 HEAD = f000f7786e
+```
 
-mkdir -p projects/composablekernel/build
-cd projects/composablekernel/build
-cmake -DBUILD_DEV=ON -DCMAKE_BUILD_TYPE=Release \
+### B2. 配置(Ninja)+ 只编 bwd(挂的是 bwd,fwd 是过的,省时间)
+
+```
+mkdir -p projects/composablekernel/build && cd projects/composablekernel/build
+cmake -G Ninja \
+      -DBUILD_DEV=ON -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_CXX_FLAGS="-O3 -ftemplate-backtrace-limit=0" \
       -DGPU_TARGETS=gfx950 \
-      -DCMAKE_CXX_COMPILER=$ROCM/llvm/bin/clang++ \
+      -DCMAKE_CXX_COMPILER="$CLANGXX" \
       -DCMAKE_PREFIX_PATH=$ROCM \
-      -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-cmake --build . -j $(nproc) --target tile_example_fmha_fwd
-cmake --build . -j $(nproc) --target tile_example_fmha_bwd
+      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+
+# 并发别用满核:fmha bwd 实例(尤其 maxk_256)单 TU 吃几 GB,满核会 OOM 被 kill。
+# -j 32 是稳妥起点;若 dmesg/日志出现 OOM-killed,降到 -j 16。
+ninja -j 32 tile_example_fmha_bwd
+
+# (可选,只有要完整复现 fwd 那两条命令时才编;fwd 不挂)
+# ninja -j 32 tile_example_fmha_fwd
 ```
-CK build 约 ~37 分钟,正常。
+说明:
+- 只编 `tile_example_fmha_bwd`,省掉 fwd 那批实例。
+- 用了 Ninja(比 Makefile 快);去掉了 `CMAKE_VERBOSE_MAKEFILE`(Ninja 下无效且刷屏)。
+- `BUILD_DEV=ON` 与 SQA 一致;**若配置/编译因 `-Werror` 类警告报错,改 `-DBUILD_DEV=OFF` 再来**。
+- bwd 目标编译约几十分钟(取决于 -j 和机器),正常。
 
 ---
 
@@ -80,13 +116,16 @@ watch -n1 rocm-smi
 sudo dmesg -w
 ```
 
-主终端跑(SQA 在 ~3 秒杀 bwd;这里直接跑、让它跑完):
+主终端跑 —— **关键就是这条 bwd**(SQA 在 ~3 秒杀它;这里直接跑、让它跑完):
 ```
 cd /home/amd/rocm-libraries/projects/composablekernel/build
-./bin/tile_example_fmha_fwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=1 -drop_seed=10 -drop_offset=1234
-./bin/tile_example_fmha_fwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=0 -drop_seed=10 -drop_offset=1234
 time timeout 600 ./bin/tile_example_fmha_bwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=1 -drop_seed=10 -drop_offset=1234
 time timeout 600 ./bin/tile_example_fmha_bwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=0 -drop_seed=10 -drop_offset=1234
+```
+(可选,只有当 B2 也编了 fwd、要完整复现那 4 条时再跑;fwd 不挂)
+```
+./bin/tile_example_fmha_fwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=1 -drop_seed=10 -drop_offset=1234
+./bin/tile_example_fmha_fwd -b=1 -h=8 -s=4096 -d=64 -drop_prefs=0 -drop_seed=10 -drop_offset=1234
 ```
 
 判读(这一步直接分根因):
