@@ -59,7 +59,7 @@ export AMD_LLM_GATEWAY_KEY="<YOUR_AMD_GATEWAY_KEY>"
 export USER_NTID="<YOUR_AMD_NTID>"
 export ANTHROPIC_API_KEY="dummy"
 export ANTHROPIC_BASE_URL="https://llm-api.amd.com/Anthropic"
-# 两个请求头,用换行分隔(网关同时需要 gateway key 和 USER-NTID);引号要跨行
+# 两个请求头,用换行分隔(gateway key 必需;USER-NTID 是用户标识,匹配标准配置);引号要跨行
 export ANTHROPIC_CUSTOM_HEADERS="Ocp-Apim-Subscription-Key: ${AMD_LLM_GATEWAY_KEY}
 USER-NTID: ${USER_NTID}"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-8[1m]"
