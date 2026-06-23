@@ -15,6 +15,7 @@
 | API Base URL | `https://llm-api.amd.com/Anthropic` |
 | API Key（占位） | `dummy` |
 | AMD LLM Gateway Key | `<YOUR_AMD_GATEWAY_KEY>` |
+| AMD NTID（网络账号，第二个请求头 `USER-NTID`，用户标识/计量） | `<YOUR_AMD_NTID>` |
 | Opus 模型 | `claude-opus-4-8[1m]` |
 | Sonnet 模型 | `claude-sonnet-4-6[1m]` |
 | Haiku 模型 | `claude-haiku-4-5` |
@@ -55,9 +56,12 @@ export PATH="$HOME/.local/bin:$PATH"
 ```bash
 # === Claude Code / AMD LLM Gateway ===
 export AMD_LLM_GATEWAY_KEY="<YOUR_AMD_GATEWAY_KEY>"
+export USER_NTID="<YOUR_AMD_NTID>"
 export ANTHROPIC_API_KEY="dummy"
 export ANTHROPIC_BASE_URL="https://llm-api.amd.com/Anthropic"
-export ANTHROPIC_CUSTOM_HEADERS="Ocp-Apim-Subscription-Key: ${AMD_LLM_GATEWAY_KEY}"
+# 两个请求头,用换行分隔(网关同时需要 gateway key 和 USER-NTID);引号要跨行
+export ANTHROPIC_CUSTOM_HEADERS="Ocp-Apim-Subscription-Key: ${AMD_LLM_GATEWAY_KEY}
+USER-NTID: ${USER_NTID}"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-8[1m]"
 export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-4-6[1m]"
 export ANTHROPIC_DEFAULT_HAIKU_MODEL="claude-haiku-4-5"
@@ -115,6 +119,7 @@ curl -sS -X POST https://llm-api.amd.com/Anthropic/v1/messages \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
   -H "Ocp-Apim-Subscription-Key: $AMD_LLM_GATEWAY_KEY" \
+  -H "USER-NTID: $USER_NTID" \
   -d '{"model":"claude-opus-4-8","max_tokens":20,"messages":[{"role":"user","content":"ping, reply with one word"}]}'
 ```
 
@@ -185,6 +190,8 @@ echo "version:          $(claude --version)"
 echo "BASE_URL:         $ANTHROPIC_BASE_URL"
 echo "API_KEY:          $ANTHROPIC_API_KEY"
 echo "GATEWAY_KEY len:  ${#AMD_LLM_GATEWAY_KEY}  (应为 32)"
+echo "USER_NTID:        $USER_NTID"
+echo "CUSTOM_HEADERS:   $(printf '%s' "$ANTHROPIC_CUSTOM_HEADERS" | sed -E 's/: .*/: .../' | tr '\n' ';')  (应有 Ocp-Apim-Subscription-Key 和 USER-NTID 两个头)"
 echo "OPUS_MODEL:       $ANTHROPIC_DEFAULT_OPUS_MODEL"
 echo "SONNET_MODEL:     $ANTHROPIC_DEFAULT_SONNET_MODEL"
 echo "HAIKU_MODEL:      $ANTHROPIC_DEFAULT_HAIKU_MODEL"
