@@ -15,7 +15,7 @@
 | API Base URL | `https://llm-api.amd.com/Anthropic` |
 | API Key（占位） | `dummy` |
 | AMD LLM Gateway Key | `<YOUR_AMD_GATEWAY_KEY>` |
-| AMD NTID（网络账号，第二个请求头 `USER-NTID`，用户标识/计量） | `<YOUR_AMD_NTID>` |
+| AMD NTID（网络账号，第二个请求头 `USER-NTID`，用户标识/计量） | `junlin12` |
 | Opus 模型 | `claude-opus-4-8[1m]` |
 | Sonnet 模型 | `claude-sonnet-4-6[1m]` |
 | Haiku 模型 | `claude-haiku-4-5` |
@@ -56,7 +56,7 @@ export PATH="$HOME/.local/bin:$PATH"
 ```bash
 # === Claude Code / AMD LLM Gateway ===
 export AMD_LLM_GATEWAY_KEY="<YOUR_AMD_GATEWAY_KEY>"
-export USER_NTID="<YOUR_AMD_NTID>"
+export USER_NTID="junlin12"
 export ANTHROPIC_API_KEY="dummy"
 export ANTHROPIC_BASE_URL="https://llm-api.amd.com/Anthropic"
 # 两个请求头,用换行分隔(gateway key 必需;USER-NTID 是用户标识,匹配标准配置);引号要跨行
