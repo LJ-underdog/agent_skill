@@ -96,8 +96,8 @@ PASS：完整跑通，吞吐量 > baseline 的 90%
 
 ```bash
 PROJECT="{任务名}"
-mkdir -p /home/hanchang/project_${PROJECT}/logs
-touch /home/hanchang/project_${PROJECT}/{experiment_log,hypothesis_log,commit_log}.md
+mkdir -p ~/project_${PROJECT}/logs
+touch ~/project_${PROJECT}/{experiment_log,hypothesis_log,commit_log}.md
 ```
 
 目录说明：
@@ -131,14 +131,14 @@ project_{name}/
 （如果 CRASH）完整错误信息：
 {copy-paste，不 paraphrase}
 
-日志保存路径：/home/hanchang/project_*/logs/{文件名}
+日志保存路径：~/project_*/logs/{文件名}
 ```
 
 ### A4 从 recall/memory 提取已知事实
 
 ```bash
-cat /root/.local/share/claude/recall/hanchang/knowledge/index.md
-cat /root/.claude/projects/-home-hanchang/memory/MEMORY.md
+cat /root/.local/share/claude/recall/<user>/knowledge/index.md
+cat /root/.claude/projects/-home-<user>/memory/MEMORY.md
 ```
 
 在 `experiment_log.md` 顶部写入（不可在任务中重新验证的事实）：
@@ -191,7 +191,7 @@ F2. ...
 
 ### 下一步
 {这个结果触发了什么？}
-日志：/home/hanchang/project_*/logs/{文件名}
+日志：~/project_*/logs/{文件名}
 ```
 
 **常见遗漏**：
@@ -307,7 +307,7 @@ Hash：{从 git log copy-paste}
 - [ ] 代码示例在目标语言中语法正确（若非可运行代码，明确标注为 pseudocode）
 
 ### 日志持久化
-- [ ] 所有日志保存在 `/home/hanchang/project_*/logs/`（不在 /tmp）
+- [ ] 所有日志保存在 `~/project_*/logs/`（不在 /tmp）
 - [ ] 日志文件名包含时间戳或描述，一年后仍能识别
 
 ### 边界清晰

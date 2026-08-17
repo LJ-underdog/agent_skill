@@ -11,16 +11,16 @@
 
 | 项目 | 值 |
 | --- | --- |
-| Claude Code 版本 | `2.1.160`（当前机器在用，与 AMD 网关兼容） |
+| Claude Code 版本 | `2.1.233`（当前机器在用，与 AMD 网关兼容） |
 | API Base URL | `https://llm-api.amd.com/Anthropic` |
 | API Key（占位） | `dummy` |
 | AMD LLM Gateway Key | `<YOUR_AMD_GATEWAY_KEY>` |
-| AMD NTID（网络账号，第二个请求头 `USER-NTID`，用户标识/计量） | `junlin12` |
-| Opus 模型 | `claude-opus-4-8[1m]` |
-| Sonnet 模型 | `claude-sonnet-4-6[1m]` |
+| AMD NTID（网络账号，第二个请求头 `USER-NTID`，用户标识/计量） | `<YOUR_AMD_NTID>` |
+| Opus 模型 | `claude-opus-5[1m]` |
+| Sonnet 模型 | `claude-sonnet-5[1m]` |
 | Haiku 模型 | `claude-haiku-4-5` |
 
-> 说明（2026-06 网关实测）：`claude-opus-4-8`、`claude-sonnet-4-6`、`claude-haiku-4-5` 现在都可用（旧版文档说 sonnet/haiku 会 403 已过时）。旧名 `claude-opus-4-7` 网关会**别名到 `claude-opus-4-8`**，所以直接写 `4-8` 即可。`[1m]` 后缀是 **Claude Code 侧的 100 万上下文记法**（写在 `*_MODEL` 环境变量里有效）；**raw curl 自测要用不带 `[1m]` 的名字**（带 `-1m` 的原始模型名网关会 400）。网关放出的模型会变，落地前用第三节的 curl 自测当前能用哪个。
+> 说明（2026-08 本机实测）：`claude-opus-5`、`claude-sonnet-5`、`claude-haiku-4-5` 是当前机器 `*_MODEL` 环境变量在用的值，Opus 已实测跑通（旧版文档说 sonnet/haiku 会 403 已过时）。`[1m]` 后缀是 **Claude Code 侧的 100 万上下文记法**（写在 `*_MODEL` 环境变量里有效）；**raw curl 自测要用不带 `[1m]` 的名字**（带 `-1m` 的原始模型名网关会 400）。网关放出的模型会变，落地前用第三节的 curl 自测当前能用哪个。
 
 ---
 
@@ -31,10 +31,14 @@
 官方 installer（推荐，会装到 `~/.local/share/claude/versions/<ver>/`，并在 `~/.local/bin/claude` 创建软链）：
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash -s 2.1.160
+curl -fsSL https://claude.ai/install.sh | bash -s 2.1.233
 ```
 
 安装后 `claude` 是一个 ELF 可执行文件，**不依赖 Node.js**。
+
+> 另一种已验证方式（容器 / 有 npm 的环境）：`npm i -g @anthropic-ai/claude-code`。
+> 此方式装在 `$(npm root -g)/@anthropic-ai/claude-code/`，二进制经 PATH 暴露为 `claude`，
+> **依赖 Node.js**（与上面 installer 的 ELF 方式不同）。本容器实测：2.1.233 可用。
 
 ### 2. 把 `claude` 加进 PATH
 
@@ -56,17 +60,17 @@ export PATH="$HOME/.local/bin:$PATH"
 ```bash
 # === Claude Code / AMD LLM Gateway ===
 export AMD_LLM_GATEWAY_KEY="<YOUR_AMD_GATEWAY_KEY>"
-export USER_NTID="junlin12"
+export USER_NTID="<YOUR_AMD_NTID>"
 export ANTHROPIC_API_KEY="dummy"
 export ANTHROPIC_BASE_URL="https://llm-api.amd.com/Anthropic"
 # 两个请求头,用换行分隔(gateway key 必需;USER-NTID 是用户标识,匹配标准配置);引号要跨行
 export ANTHROPIC_CUSTOM_HEADERS="Ocp-Apim-Subscription-Key: ${AMD_LLM_GATEWAY_KEY}
 USER-NTID: ${USER_NTID}"
-export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-8[1m]"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-4-6[1m]"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-5[1m]"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-5[1m]"
 export ANTHROPIC_DEFAULT_HAIKU_MODEL="claude-haiku-4-5"
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-export CLAUDE_CODE_SUBAGENT_MODEL="claude-opus-4-8"
+export CLAUDE_CODE_SUBAGENT_MODEL="claude-opus-5"
 export CLAUDE_CODE_TMPDIR="/tmp/claude-${USER}"
 ```
 
@@ -120,12 +124,12 @@ curl -sS -X POST https://llm-api.amd.com/Anthropic/v1/messages \
   -H "anthropic-version: 2023-06-01" \
   -H "Ocp-Apim-Subscription-Key: $AMD_LLM_GATEWAY_KEY" \
   -H "USER-NTID: $USER_NTID" \
-  -d '{"model":"claude-opus-4-8","max_tokens":20,"messages":[{"role":"user","content":"ping, reply with one word"}]}'
+  -d '{"model":"claude-opus-5","max_tokens":20,"messages":[{"role":"user","content":"ping, reply with one word"}]}'
 ```
 
 期望：返回类似
 ```json
-{"model":"claude-opus-4-8", ... "content":[{"type":"text","text":"pong"}], ...}
+{"model":"claude-opus-5", ... "content":[{"type":"text","text":"pong"}], ...}
 ```
 
 如果返回 `401` → key 错；返回 `403 Access to model ... not available` → 模型名错；返回 SSL/证书错 → 看下文 TLS 排查。
@@ -133,7 +137,7 @@ curl -sS -X POST https://llm-api.amd.com/Anthropic/v1/messages \
 ### 2. 验证 Claude Code 跑得通
 
 ```bash
-claude --version          # 应输出 2.1.160 (Claude Code)
+claude --version          # 应输出 2.1.233 (Claude Code)
 claude -p 'say hi in one word'   # 应输出一个词，例如 "Hi"
 ```
 
@@ -144,7 +148,7 @@ claude -p 'say hi in one word'   # 应输出一个词，例如 "Hi"
 ## 四、常见问题
 
 ### Q1：`403 Access to model [X] is not available`
-模型名和网关不匹配。2026-06 网关实测可用：`claude-opus-4-8`、`claude-sonnet-4-6`、`claude-haiku-4-5`（旧名 `claude-opus-4-7` 会别名到 `4-8`）。用第三节的 curl 确认当前哪个能用，再填进 `*_MODEL`。
+模型名和网关不匹配。2026-08 当前机器在用：`claude-opus-5`、`claude-sonnet-5`、`claude-haiku-4-5`。用第三节的 curl 确认当前哪个能用，再填进 `*_MODEL`。
 
 ### Q2：TLS / 证书错（`self-signed certificate`、`unable to verify the first certificate`）
 Claude Code 的内置运行时不读系统信任库（即使现在是原生 ELF 也一样），需要装 AMD 根证书并用 `NODE_EXTRA_CA_CERTS` 指给它：
@@ -173,8 +177,8 @@ export CLAUDE_CODE_MAX_RETRIES=20
 ```
 
 ### Q4：在 Docker 容器里也想用
-参考当前机器 `~/.claude/projects/-home-junlin12/memory/MEMORY.md` 里 `Skill: docker-install-claude` 一节，要点：
-- 把宿主机 `~/.local/share/claude/versions/2.1.160` 整个 cp 进容器
+参考当前机器 `~/.claude/projects/-home-<user>/memory/MEMORY.md` 里 `Skill: docker-install-claude` 一节，要点：
+- 把宿主机 `~/.local/share/claude/versions/2.1.233` 整个 cp 进容器
 - 写 `/root/.claude-env` 包含上面那一坨 `export`
 - `docker run` 时加 `-e BASH_ENV=/root/.claude-env`（`bash -c` 不读 `.bashrc`，必须用 `BASH_ENV`）
 
@@ -202,12 +206,12 @@ echo "SUBAGENT_MODEL:   $CLAUDE_CODE_SUBAGENT_MODEL"
 
 ```
 claude:           /home/<user>/.local/bin/claude
-version:          2.1.160 (Claude Code)
+version:          2.1.233 (Claude Code)
 BASE_URL:         https://llm-api.amd.com/Anthropic
 API_KEY:          dummy
 GATEWAY_KEY len:  32  (应为 32)
-OPUS_MODEL:       claude-opus-4-8[1m]
-SONNET_MODEL:     claude-sonnet-4-6[1m]
+OPUS_MODEL:       claude-opus-5[1m]
+SONNET_MODEL:     claude-sonnet-5[1m]
 HAIKU_MODEL:      claude-haiku-4-5
-SUBAGENT_MODEL:   claude-opus-4-8
+SUBAGENT_MODEL:   claude-opus-5
 ```

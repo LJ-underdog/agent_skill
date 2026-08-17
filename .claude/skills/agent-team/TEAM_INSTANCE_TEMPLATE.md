@@ -31,12 +31,36 @@ synthesizer 拼合时缺 REQUIRED 节即 raise（防反模式 #12 format mismatc
 
 ```
 PROJECT:    {简短名称，如 fp8-tp2-debug}
-WORK_DIR:   {持久路径，禁止临时目录，如 /home/hanchang/project_{name}/}
+WORK_DIR:   {持久路径，禁止临时目录，如 ~/project_{name}/}
 DOC_DIR:    {同 WORK_DIR 或子目录}
 LOG_DIR:    {DOC_DIR/logs/}
 CODE_ROOTS: {相关仓库路径列表}
 GOAL:       {一句话，可量化}
 ```
+
+---
+
+## Pane Role Map
+
+<!--
+父类 SKILL.md §9.6.5.2:1197 要求 lead 在本文件顶部声明本节，作为 pane↔角色的单源真相。
+schema 见 SKILL.md:1199-1210；标准 4 角色见 §9.6.5.1 SSOT 表（SKILL.md:1180-1188）。
+
+- Pane 列默认用标准 4-pane 地址 :0.0–:0.3。若本任务采用变体布局（如 lead 跨 session、
+  teammate 挪到 window 1），Pane 列直接写变体后的真实地址，并在表下补一行说明偏离原因。
+- "本 wave 临时角色"仅 wave 内有效，写法 `— / log-fetcher (wave-N)`；
+  跨 wave 持续 ≥2 wave 应升格为持久变更并标 `effective wave-N onward`（SKILL.md §9.6.5.3:1227）。
+- "refresh 状态"写法 `— / refreshed @ wave-M`（SKILL.md §9.6.5.4:1244）。
+- "GPA history"可选，写法 `wave-N: 4.2 / wave-M: 4.5`，供 §9.6.5.4 refresh 触发参考（SKILL.md:1213）。
+- 本节是单源真相，teammate 派单 prompt cross-ref 之，不重抄一份（SKILL.md:1214）。
+-->
+
+| Pane | 持久角色 | 本 wave 临时角色 | refresh 状态 | GPA history（可选） |
+|---|---|---|---|---|
+| :0.0 | lead | — | — | — |
+| :0.1 | auditor+patcher | — | — | — |
+| :0.2 | drafter | — | — | — |
+| :0.3 | architect+reviewer | — | — | — |
 
 ---
 
@@ -112,7 +136,7 @@ budget:
 {重要：必须同时删两处，只删其一无效}
 
 # git push 配置
-{如：从 /home/hanchang/junlin12_repos/{repo} 执行}
+{如：从 ~/{push 专用仓库目录}/{repo} 执行}
 {author：{name} <{email}>}
 
 # 长时任务运行方式（>5min 的编译/推理）

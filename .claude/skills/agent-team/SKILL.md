@@ -1088,7 +1088,7 @@ done
 }
 ```
 
-渲染示例（每 pane 底部一行）：`[claude-opus-4-7] ctx 43% | $28.28 | junlin12`
+渲染示例（每 pane 底部一行）：`[Opus 5 (1M context)] ctx 43% | $28.28 | junlin12`（方括号内是 `model.display_name`，**不是** model id）
 
 **字段来源**（stdin JSON schema，官方）：
 - `context_window.used_percentage` — input-only 百分比（首次 API call 前为 `null`，已用 `// 0` 兜底）

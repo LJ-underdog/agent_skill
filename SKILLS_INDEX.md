@@ -8,10 +8,12 @@
 
 | Skill | 触发词 | 用途 |
 |-------|--------|------|
-| [agent-team](./claude/skills/agent-team/SKILL.md) | "start agent team", "用 agent team" | 将复杂任务分解给多个 Claude 子 agent 并行执行 |
-| [project-summary](./claude/skills/project-summary/SKILL.md) | "write project summary", "做任务总结" | 为工程任务生成可验证的文档记录 |
-| [dev-pipeline](./claude/skills/dev-pipeline/SKILL.md) | "do a full pipeline", "dev pipeline" | 结构化开发流程：brainstorm → spec → plan → execute |
+| [agent-team](./.claude/skills/agent-team/SKILL.md) | "start agent team", "用 agent team" | 将复杂任务分解给多个 Claude 子 agent 并行执行 |
+| [project-summary](./.claude/skills/project-summary/SKILL.md) | "write project summary", "做任务总结" | 为工程任务生成可验证的文档记录 |
+| [dev-pipeline](./.claude/skills/dev-pipeline/SKILL.md) | "do a full pipeline", "dev pipeline" | 结构化开发流程：brainstorm → spec → plan → execute |
 | [rocm-kernel-design](./rocm-kernel-design/SKILL.md) | "rocm-kernel-design", "设计/优化 ROCm/CK/aiter/HIP kernel" | 证据驱动的 ROCm（CDNA gfx942/gfx950）kernel 实现与调优：规格契约 → draft 闸门 → 单点试验环（每候选对拍+benchmark+三道闸门）→ 证据账本；内嵌 GPU/git 纪律、rocm-ref 硬件核对、cos_sim 验证 |
+| [llm-usage](./.claude/skills/llm-usage/SKILL.md) | "用了多少 token", "花了多少钱" | 查询 AMD LLM Gateway（`llm.amd.com`）的 token 用量与计费：按模型聚合 request 数、token 量与约合 USD（默认近 30 天） |
+| [sync-ck-fmha](./.claude/skills/sync-ck-fmha/SKILL.md) | "sync CK", "update CK submodule", "integrate CK PR", "CK FMHA 变更" | 当 `ROCm/rocm-libraries` 的 PR 改动 CK FMHA API（`fmha_fwd` / `fmha_batch_prefill` / `fmha_fwd_splitkv`）时，同步更新 AITER 调用链 |
 
 ---
 
@@ -106,16 +108,29 @@ project-summary/SKILL.md (父类)
 
 ```
 agent_skill/
+├── CLAUDE.md                                    ← 通用工作原则
+├── README.md                                    ← 仓库说明
 ├── SKILLS_INDEX.md                              ← 本文件
 ├── agent_team_template.md                       ← 旧版参考文档（已被 skills/ 取代）
+├── rocm-ref.2026.03.25.gz                       ← ROCm 参考文档归档
+├── docs/
+│   ├── ROCM-21707-repro.md
+│   └── claude-setup-linux.md
+├── rocm-kernel-design/                          ← 顶层，不在 .claude/skills/ 下
+│   └── SKILL.md                                 ← 父类（可调用）
 └── .claude/skills/
     ├── agent-team/
     │   ├── SKILL.md                             ← 父类（可调用）
-    │   └── TEAM_INSTANCE_TEMPLATE.md            ← 子类骨架
+    │   ├── TEAM_INSTANCE_TEMPLATE.md            ← 子类骨架
+    │   └── templates/                           ← 4 个特化模板 + roles/ 角色库
     ├── project-summary/
     │   ├── SKILL.md                             ← 父类（可调用）
     │   ├── INSTANCE_TEMPLATE.md                 ← 子类骨架
     │   └── PRE_TASK_GUIDE.md                    ← 配套参考手册
-    └── dev-pipeline/
+    ├── dev-pipeline/
+    │   └── SKILL.md                             ← 父类（可调用）
+    ├── llm-usage/
+    │   └── SKILL.md                             ← 父类（可调用）
+    └── sync-ck-fmha/
         └── SKILL.md                             ← 父类（可调用）
 ```

@@ -135,7 +135,7 @@ validation command 必须 print 明确的 `PASS/FAIL + err 数值`,让主循环�
 ## 5. 硬件知识：rocm-ref + AMD CDNA ISA 文档（不臆造）
 
 任何关于 MFMA/WMMA、wave64/32、VGPR/AGPR、LDS bank、occupancy、存储层级、原子、cross-lane、量化格式的判断,**必须对照文档**,别凭印象:
-- **rocm-ref**（本仓 `rocm-ref.*.gz`）：`cd /tmp && tar xzf <pkg>` 得 `/tmp/rocm-ref/`;先读 `INDEX.md` 路由。权威 topic：`mfma-register-layout` / `wmma-matrix-ops` / `occupancy-register-pressure` / `memory-hierarchy` / `lds-bank-conflicts` / `cross-lane-ops` / `hardware-specs-table` / `vgpr-sgpr-agpr`;官方 ISA PDF 在 `p4vdoc/`。
+- **rocm-ref**（本仓 `rocm-ref.*.gz`）：`cd /tmp && tar xzf <pkg>` 得 `/tmp/rocm-ref/`;先读 `INDEX.md` 路由。权威 topic：`mfma-register-layout` / `wmma-matrix-ops` / `occupancy-register-pressure` / `memory-hierarchy` / `lds-bank-conflicts` / `cross-lane-ops` / `hardware-specs-table` / `vgpr-sgpr-agpr`;官方 ISA PDF 在 `pdfs/`。
 - **关键代次事实**：**MFMA 仅 CDNA3/4(gfx942/gfx950)**,CDNA5(MI400) 改 **WMMA**;gfx942/950 = wave64;**gfx950/CDNA4 每 CU LDS = 160 KB**（rocminfo GROUP segment 实测;rocm-ref `hardware-specs-table` 同;**注意 rocm-ref 内部 128 vs 160 不一致,以 rocminfo 实测为准;64KB 是 CDNA3**）。
 - **以实测兜底**：硬件数字优先 `rocminfo`/`rocm-smi` 实测,再对文档;两者冲突时实测优先并记下。
 - 找不到文档/实测支撑的硬件数字 → 删或改成相对表述,**不臆造**。

@@ -9,12 +9,28 @@
 ```
 agent_skill/
 ├── CLAUDE.md                            # 通用工作原则（输出语言、答案验证、ROCm 文档规范）
+├── README.md                            # 本文件
+├── SKILLS_INDEX.md                      # 全部 skill 的索引与组合用法
+├── agent_team_template.md               # 旧版参考文档（已被 .claude/skills/ 取代）
 ├── rocm-ref.2026.03.25.gz               # ROCm 参考文档（ISA、指令集、硬件规格）
+├── docs/                                # 环境搭建 / 复现记录
+│   ├── ROCM-21707-repro.md
+│   └── claude-setup-linux.md
+├── rocm-kernel-design/                  # ROCm kernel 设计与调优（注意：不在 .claude/skills/ 下）
+│   └── SKILL.md
 └── .claude/
     └── skills/
+        ├── agent-team/                  # 多 agent 团队：调查 → 提案 → 审批 → 执行 → 验证
+        │   ├── SKILL.md
+        │   ├── TEAM_INSTANCE_TEMPLATE.md
+        │   └── templates/               # 4 个特化模板 + roles/ 角色库
         ├── dev-pipeline/                # 全流程开发 pipeline
         │   └── SKILL.md
-        └── sync-ck-fmha/               # CK FMHA API 同步
+        ├── llm-usage/                   # AMD LLM Gateway token 用量 / 费用查询
+        │   └── SKILL.md
+        ├── project-summary/             # 工程任务总结文档
+        │   └── SKILL.md
+        └── sync-ck-fmha/                # CK FMHA API 同步
             └── SKILL.md
 ```
 
@@ -57,15 +73,15 @@ CK submodule 路径：`3rdparty/composable_kernel`（是 `projects/composableker
 ### 安装（user 级别，全局可用）
 
 ```bash
-cp -r .claude/skills/dev-pipeline ~/.claude/skills/
-cp -r .claude/skills/sync-ck-fmha ~/.claude/skills/
+ln -s /path/to/agent_skill/.claude/skills/dev-pipeline ~/.claude/skills/
+ln -s /path/to/agent_skill/.claude/skills/sync-ck-fmha ~/.claude/skills/
 ```
 
 ### 安装（project 级别，仅对特定项目生效）
 
 ```bash
 mkdir -p .claude/skills
-cp -r /path/to/agent_skill/.claude/skills/dev-pipeline .claude/skills/
+ln -s /path/to/agent_skill/.claude/skills/dev-pipeline .claude/skills/
 ```
 
 ### 调用

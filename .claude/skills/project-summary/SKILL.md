@@ -75,11 +75,11 @@ SKILL.md (父类 — 通用原则 + Changelog)
 ① git log --oneline -10              → 了解近期改动和代码状态
 ② cat README.md / CLAUDE.md          → 约束（不能改哪些文件/装饰器）
 ③ recall knowledge index             → 已知事实，避免重复验证
-   /root/.local/share/claude/recall/hanchang/knowledge/index.md
+   /root/.local/share/claude/recall/<user>/knowledge/index.md
 ④ MEMORY.md                          → 已知 bug、环境约束、路径
-   /root/.claude/projects/-home-hanchang/memory/MEMORY.md
+   /root/.claude/projects/-home-<user>/memory/MEMORY.md
 ⑤ 上一个相关子类（如有）              → 可继承的参数 schema / 已知事实
-   /home/hanchang/project_{related_name}/TASK_TEMPLATE.md
+   ~/project_{related_name}/TASK_TEMPLATE.md
 ```
 
 ### Step 2：推导子类各字段
@@ -110,7 +110,7 @@ Q5. 有没有相关的兄弟任务可以继承参数 schema？（输入任务名
 读取 `INSTANCE_TEMPLATE.md`，用 Step 1-3 的信息填入，生成：
 
 ```
-/home/hanchang/project_{name}/TASK_TEMPLATE.md
+~/project_{name}/TASK_TEMPLATE.md
 ```
 
 同时建立项目目录（见 1.1 节）。
@@ -211,7 +211,7 @@ Claude 在以下情况应**主动**提出 PC，不等用户标记：
 ### Step 4：更新父类 Changelog（见文末）并 Commit
 
 ```bash
-cd /home/hanchang/agent_skill
+cd {agent_skill 仓库路径}
 git add .claude/skills/project-summary/
 git commit -m "promote: {task-name} → {N} items added to parent template
 
@@ -330,9 +330,9 @@ project_{B}/TASK_TEMPLATE.md (子类 B，继承 A 的参数 schema 和已知事�
 ## 材料来源速查
 
 ```
-recall knowledge:  /root/.local/share/claude/recall/hanchang/knowledge/index.md
-MEMORY.md:         /root/.claude/projects/-home-hanchang/memory/MEMORY.md
-项目文档:          /home/hanchang/project_{name}/
+recall knowledge:  /root/.local/share/claude/recall/<user>/knowledge/index.md
+MEMORY.md:         /root/.claude/projects/-home-<user>/memory/MEMORY.md
+项目文档:          ~/project_{name}/
 git log:           git -C {仓库路径} log --oneline -10
-运行日志:          /home/hanchang/project_{name}/logs/
+运行日志:          ~/project_{name}/logs/
 ```

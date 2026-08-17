@@ -18,7 +18,7 @@ TASK_NAME       → 简短英文名，如 fp8-tp2-inference
 ## 任务概述
 
 **目标**：{一句话，SMART 原则}
-**相关仓库**：{列出，如 /home/hanchang/ATOM, /home/hanchang/aiter}
+**相关仓库**：{列出，如 ~/ATOM, ~/aiter}
 **环境/硬件约束**：{如 gfx950, ROCm, 避开 GPU5}
 
 <!--
@@ -146,7 +146,7 @@ TASK_NAME       → 简短英文名，如 fp8-tp2-inference
   {metric_1} = {精确值}
   状态：PASS / FAIL / CRASH
 
-日志：/home/hanchang/project_{name}/logs/{文件名}
+日志：~/project_{name}/logs/{文件名}
 ```
 
 ---
