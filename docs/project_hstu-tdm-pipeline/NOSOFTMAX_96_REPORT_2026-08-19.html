@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSTU fwd · 全量 no-softmax（96 实例）gfx1250 数值验证报告</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#16191d; --ink2:#4a5158; --ink3:#767e87;
+  --line:#e2e5ea; --line2:#cfd4db;
+  --ok:#0f7b4f; --ok-bg:#e7f5ee; --ok-line:#9dd4b8;
+  --bad:#b3261e; --bad-bg:#fdecea; --bad-line:#f0b3ae;
+  --warn:#8a5a00; --warn-bg:#fdf3e0; --warn-line:#eccd91;
+  --info:#1a5fa8; --info-bg:#e9f1fb; --info-line:#a9c9ec;
+  --mute-bg:#f0f2f5;
+  --mono:"SF Mono",SFMono-Regular,ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.68;-webkit-font-smoothing:antialiased}
+
+header.hero{background:linear-gradient(135deg,#171c24 0%,#232c3a 55%,#2c3a4d 100%);
+  color:#fff;padding:34px 40px 28px}
+.hero h1{margin:0 0 6px;font-size:27px;font-weight:650;letter-spacing:.2px}
+.hero .sub{color:#9fb0c4;font-size:14.5px;margin-bottom:18px}
+.stamp{display:flex;flex-wrap:wrap;gap:7px}
+.stamp span{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);
+  border-radius:5px;padding:3px 9px;font-family:var(--mono);font-size:11.5px;color:#cfdbe8}
+
+.wrap{display:grid;grid-template-columns:235px minmax(0,1fr);gap:26px;
+  max-width:1360px;margin:0 auto;padding:26px 32px 70px}
+@media(max-width:1000px){.wrap{grid-template-columns:1fr;padding:20px}
+  nav.toc{position:static!important;max-height:none!important}}
+nav.toc{position:sticky;top:18px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 12px;font-size:13px}
+nav.toc b{display:block;font-size:11px;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--ink3);margin:0 0 9px 6px}
+nav.toc a{display:block;padding:5px 8px;border-radius:5px;color:var(--ink2);text-decoration:none;
+  border-left:2px solid transparent}
+nav.toc a:hover{background:var(--mute-bg);color:var(--ink)}
+
+main{min-width:0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:24px 26px;margin-bottom:20px}
+h2{margin:0 0 4px;font-size:20px;font-weight:650;letter-spacing:.2px}
+h2 .num{color:var(--ink3);font-family:var(--mono);font-size:15px;margin-right:9px;font-weight:500}
+h3{margin:26px 0 9px;font-size:15.5px;font-weight:650;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h4{margin:18px 0 7px;font-size:14px;font-weight:650;color:var(--ink2)}
+.lead{color:var(--ink2);margin:0 0 16px;font-size:14.3px}
+p{margin:9px 0}
+code{font-family:var(--mono);font-size:12.6px;background:var(--mute-bg);
+  padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{background:#1b2027;color:#e3e8ee;border-radius:8px;padding:14px 16px;overflow:auto;
+  font-family:var(--mono);font-size:12.4px;line-height:1.62;margin:11px 0}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:13px;margin:16px 0 6px}
+.vc{border-radius:9px;padding:15px 16px;border:1px solid}
+.vc.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.vc.bad{background:var(--bad-bg);border-color:var(--bad-line)}
+.vc.hold{background:var(--warn-bg);border-color:var(--warn-line)}
+.vc.info{background:var(--info-bg);border-color:var(--info-line)}
+.vc .tag{font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+  display:inline-block;padding:2px 8px;border-radius:4px;color:#fff;margin-bottom:8px}
+.vc.ok .tag{background:var(--ok)} .vc.bad .tag{background:var(--bad)}
+.vc.hold .tag{background:var(--warn)} .vc.info .tag{background:var(--info)}
+.vc h4{margin:0 0 6px;font-size:15px;color:var(--ink)}
+.vc p{margin:0;font-size:13.4px;color:var(--ink2);line-height:1.6}
+.vc .scope{margin-top:9px;font-family:var(--mono);font-size:11.5px;color:var(--ink3);
+  border-top:1px dashed rgba(0,0,0,.13);padding-top:7px}
+
+table{width:100%;border-collapse:collapse;margin:13px 0;font-size:13.4px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--mute-bg);font-weight:650;font-size:12.6px;color:var(--ink2)}
+td.mono,th.mono{font-family:var(--mono);font-size:12.2px}
+tr:hover td{background:#fafbfc}
+.num-cell{text-align:right;font-family:var(--mono);font-size:12.4px}
+
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11.5px;
+  font-weight:650;font-family:var(--mono)}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad-line)}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line)}
+.pill.info{background:var(--info-bg);color:var(--info);border:1px solid var(--info-line)}
+
+.callout{border-left:3px solid var(--info);background:var(--info-bg);border-radius:0 7px 7px 0;
+  padding:12px 15px;margin:14px 0;font-size:13.7px;color:var(--ink2)}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.callout b{color:var(--ink)}
+
+.diff{background:#1b2027;border-radius:8px;padding:13px 0;margin:11px 0;overflow:auto;
+  font-family:var(--mono);font-size:12.3px;line-height:1.6}
+.diff div{padding:0 16px;white-space:pre}
+.diff .add{background:rgba(46,160,67,.16);color:#7ee2a8}
+.diff .ctx{color:#8b949e}
+.diff .hdr{color:#c9a8ff;background:rgba(139,92,246,.12)}
+.diff .file{color:#79c0ff;font-weight:650;padding:5px 16px;background:rgba(56,139,253,.12)}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:13.5px;margin:11px 0}
+.kv dt{font-family:var(--mono);font-size:12.4px;color:var(--ink3)}
+.kv dd{margin:0;color:var(--ink2)}
+ul,ol{margin:9px 0;padding-left:22px}
+li{margin:4px 0}
+footer{max-width:1360px;margin:0 auto;padding:0 32px 50px;color:var(--ink3);font-size:12.6px}
+.src{font-family:var(--mono);font-size:11.6px;color:var(--ink3)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>HSTU fwd · 全量 no-softmax（96 实例）在 gfx1250 上的数值验证</h1>
+  <div class="sub">承接 <code style="background:rgba(255,255,255,.12);color:#cfdbe8;border-color:rgba(255,255,255,.2)">HANDOFF_2026-08-18.md §6</code> —— GPU 阻塞解除后的第一步清单，并把验证面从 48 实例扩到全部 96 个 no-softmax 实例</div>
+  <div class="stamp">
+    <span>2026-08-19</span>
+    <span>repo /data/composable_kernel</span>
+    <span>branch hstu_attention_fwd_450</span>
+    <span>HEAD a56c3ea3f（未变）</span>
+    <span>gfx1250 / CDNA5 / wave32</span>
+    <span>ROCm 7.14.60850</span>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc">
+  <b>目录</b>
+  <a href="#s0">0 · 一句话结论</a>
+  <a href="#s1">1 · 阻塞解除确认</a>
+  <a href="#s2">2 · 我改了哪些地方</a>
+  <a href="#s3">3 · 构建结果</a>
+  <a href="#s4">4 · 反汇编验收</a>
+  <a href="#s5">5 · 对拍矩阵 96/96</a>
+  <a href="#s6">6 · 5 个失败的根因</a>
+  <a href="#s7">7 · 对 HANDOFF 的订正</a>
+  <a href="#s8">8 · 遗留与下一步</a>
+  <a href="#s9">9 · 复现命令</a>
+  <a href="#s10">10 · 清理项增补</a>
+</nav>
+
+<main>
+
+<section id="s0">
+  <h2><span class="num">0</span>一句话结论</h2>
+  <p class="lead">HSTU fwd 的 <b>no-softmax（SiLU）路径在 gfx1250 上跑通，且覆盖全部 96 个 no-softmax 实例</b>。HANDOFF 里「数值正确性仍为零验证」的状态已解除。</p>
+
+  <div class="verdicts">
+    <div class="vc ok"><span class="tag">已验证</span>
+      <h4>96 个 no-softmax 实例全部编译并链接</h4>
+      <p>0 编译错误。96/96 gfx1250 设备对象全部含 WMMA，<code>v_mfma = 0</code>。</p>
+      <div class="scope">221184 v_wmma = 2 × 110592（48 实例版），完美自洽</div>
+    </div>
+    <div class="vc ok"><span class="tag">已验证</span>
+      <h4>91 / 96 配置数值对拍通过</h4>
+      <p>1:1 覆盖 96 个实例的完整维度空间（mode×dtype×causal×maxk×dropout）。</p>
+      <div class="scope">逐元素 allclose，rtol=1.6e-2 / atol=1e-5</div>
+    </div>
+    <div class="vc info"><span class="tag">既有问题</span>
+      <h4>5 个失败是半 ulp 舍入，非本次引入</h4>
+      <p>每个 case <b>只错 1 个元素</b>，误差恰好 = 半个 ulp。旧二进制同参数同样失败。</p>
+      <div class="scope">唯一变量对照 3/3 稳定复现</div>
+    </div>
+    <div class="vc ok"><span class="tag">新增覆盖</span>
+      <h4>dropout / RNG 路径首次拿到数值证据</h4>
+      <p>§3.2 那个 2 行 RNG 修复此前只有编译证据，本次首次通过数值对拍。</p>
+      <div class="scope">48 个 has_dropout 实例全部纳入</div>
+    </div>
+    <div class="vc bad"><span class="tag">订正</span>
+      <h4>gpu_busy_percent 不能当 wedge 指标</h4>
+      <p>HANDOFF §3.4 把「GPU%=100 恒定」列为 wedge 旁证 —— 实测是假信号。</p>
+      <div class="scope">卡健康、零负载时同样恒 100</div>
+    </div>
+    <div class="vc hold"><span class="tag">未解决</span>
+      <h4>softmax 96 实例仍坏；gpu_recovery 仍为 0</h4>
+      <p>§3.1 未触碰。§6.0 对平台的请求未被满足，下次 wedge 依然静默。</p>
+      <div class="scope">cat /sys/module/amdgpu/parameters/gpu_recovery → 0</div>
+    </div>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><span class="num">1</span>阻塞解除确认</h2>
+  <p class="lead">HANDOFF §3.4 的「整卡 MES wedge」已随宿主重启解除。</p>
+
+  <h3>1.1 最小探活：vector_add</h3>
+  <p>先用一个不依赖本项目任何代码的 HIP 程序确认机器（§9.4 最小复现优先）：</p>
+  <pre><code>hipcc --offload-arch=gfx1250 -O3 -x hip vector_add.cpp -o vector_add &amp;&amp; ./vector_add
+→ vector_add PASSED (n=256)</code></pre>
+  <div class="callout warn">
+    <b>踩坑（新机器上会立刻遇到）</b>：hipcc 产出的二进制运行时必须带
+    <code>LD_LIBRARY_PATH=/opt/venv/lib/python3.14/site-packages/_rocm_sdk_core/lib</code>，
+    否则报 <code>error while loading shared libraries: libamdhip64.so.7</code>。
+    这与 HANDOFF §6.3 记录的坑是同一个。
+  </div>
+
+  <h3>1.2 性能基线（顺带取得）</h3>
+  <dl class="kv">
+    <dt>配置</dt><dd>fp16, b=8, nhead=8, hdim_qk=hdim_v=128, seqlen=4096, non-jagged, causal</dd>
+    <dt>耗时</dt><dd>0.432095 ms</dd>
+    <dt>吞吐</dt><dd><b>1276.03 TFLOPS</b>（程序自报 estimated TFLOPS）</dd>
+  </dl>
+  <p class="src">来源：<code>tile_example_hstu_attention_fwd -perf=1</code> 实测输出</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span>我改了哪些地方</h2>
+  <p class="lead">共 <b>2 个文件，+33 行，−0 行</b>。未删除、未改写任何既有行；未新增文件；未 <code>git add / commit / push</code>。</p>
+
+  <div class="callout ok">
+    <b>红线守住</b>：<code>git rev-parse --short HEAD</code> → <code>a56c3ea3f</code>（与 HANDOFF §4 记录一致，未变）。
+    <code>git status --porcelain</code> 仍是 <b>13 <code>M</code> + 2 <code>??</code></b> —— 我改的两个文件本来就在这 15 项里，<b>没有把工作区从 15 项变成 16 项</b>。
+  </div>
+
+  <h3>2.1 设计意图</h3>
+  <p>T2 原有的 <code>HSTU_FWD_MINIMAL_INSTANCES</code> 是一个 <code>(kUseSoftmax, kHasDropout)</code> 二维开关，只保留 <code>(false,false)</code> 这一格 = 48 个实例。要验证<b>全部</b> no-softmax 面，需要保留 <code>kUseSoftmax==false</code> 的<b>整列</b>（含 dropout）= 96 个实例。因此按原有机制的风格加一个更宽的变体，而不是重构它（§6 简单优先 / §7 改动最小化）。</p>
+
+  <table>
+    <tr><th>开关</th><th class="mono">glob</th><th class="num-cell">实例数</th><th>保留的分支</th></tr>
+    <tr><td class="mono">HSTU_FWD_MINIMAL_INSTANCES<br><span class="pill info">既有 · T2</span></td>
+        <td class="mono">*_forward_*softmax_false*no_dropout*.cpp</td><td class="num-cell">48</td><td>softmax=false 且 dropout=false</td></tr>
+    <tr><td class="mono">HSTU_FWD_NO_SOFTMAX_INSTANCES<br><span class="pill ok">本次新增</span></td>
+        <td class="mono">*_forward_*softmax_false*.cpp</td><td class="num-cell"><b>96</b></td><td>softmax=false（dropout 两种都要）</td></tr>
+    <tr><td class="mono">两者皆 OFF（默认）</td><td class="mono">*_forward_*.cpp</td><td class="num-cell">288</td><td>全部（其中 96 个 softmax 实例在 gfx1250 编不过）</td></tr>
+  </table>
+  <p>两个 option 互斥，<code>MINIMAL</code> 优先（写在 <code>if</code> 的第一分支）。两者皆 OFF 时预处理结果与原始代码逐字节相同。</p>
+
+  <h3>2.2 改动一：<span class="mono">example/ck_tile/18_hstu_attention/CMakeLists.txt</span></h3>
+  <p><span class="pill ok">+12 行</span> <span class="pill info">−0 行</span> —— 该文件此前已被 T1/T2 改过；<b>以下只是我本次新增的部分</b>，T1 的 gfx125 分支与 T2 的 MINIMAL 块均未触碰。</p>
+
+  <div class="diff">
+    <div class="file">example/ck_tile/18_hstu_attention/CMakeLists.txt</div>
+    <div class="hdr">@@ 在既有 option(HSTU_FWD_MINIMAL_INSTANCES ...) 之后新增 @@</div>
+    <div class="ctx">        "Compile only softmax=false + dropout=false fwd instances (fast iteration)" OFF)</div>
+    <div class="ctx"> </div>
+    <div class="add">+# Wider variant of the same mechanism: keep every softmax=false instance, dropout included</div>
+    <div class="add">+# (96 of 288), and drop only the softmax branch. Used to validate the full no-softmax (SiLU)</div>
+    <div class="add">+# surface while the softmax instances are still broken on gfx1250. Mutually exclusive with</div>
+    <div class="add">+# HSTU_FWD_MINIMAL_INSTANCES, which takes precedence.</div>
+    <div class="add">+option(HSTU_FWD_NO_SOFTMAX_INSTANCES</div>
+    <div class="add">+       "Compile all softmax=false fwd instances, dropout included" OFF)</div>
+    <div class="add">+</div>
+    <div class="ctx"> # Source lists for the forward path</div>
+    <div class="hdr">@@ 在既有 if(HSTU_FWD_MINIMAL_INSTANCES) 之后插入一个 elseif 分支 @@</div>
+    <div class="ctx">     message(STATUS "HSTU_FWD_MINIMAL_INSTANCES=ON: ... (softmax=false, dropout=false)")</div>
+    <div class="add">+elseif(HSTU_FWD_NO_SOFTMAX_INSTANCES)</div>
+    <div class="add">+    file(GLOB FWD_INSTANCE_SRCS instances/*_forward_*softmax_false*.cpp)</div>
+    <div class="add">+    list(APPEND EXAMPLE_HSTU_ATTENTION_COMPILE_OPTIONS -DHSTU_FWD_NO_SOFTMAX_INSTANCES)</div>
+    <div class="add">+    list(LENGTH FWD_INSTANCE_SRCS _HSTU_FWD_N_INSTANCES)</div>
+    <div class="add">+    message(STATUS "HSTU_FWD_NO_SOFTMAX_INSTANCES=ON: ${_HSTU_FWD_N_INSTANCES} fwd instances (softmax=false, dropout=true/false)")</div>
+    <div class="ctx"> else()</div>
+    <div class="ctx">     file(GLOB FWD_INSTANCE_SRCS instances/*_forward_*.cpp)</div>
+    <div class="ctx"> endif()</div>
+  </div>
+
+  <h3>2.3 改动二：<span class="mono">example/ck_tile/18_hstu_attention/hstu_attention_minimal_instances.hpp</span></h3>
+  <p><span class="pill ok">+21 行</span> <span class="pill info">−0 行</span> —— 该文件是 T2 建的未跟踪新文件（<code>??</code>），改动前 55 行，改动后 76 行。三处纯新增，均为 <code>#elif</code> 分支与注释，<b>既有的 <code>#if defined(HSTU_FWD_MINIMAL_INSTANCES)</code> 与 <code>#else</code> 分支一行未动</b>。</p>
+
+  <h4>(a) 顶部注释补充新开关的语义 —— +5 行</h4>
+  <div class="diff">
+    <div class="ctx"> // OFF (default) hstu_fwd_keep_instance() is constant true and the preprocessed result is</div>
+    <div class="ctx"> // identical to the original code.</div>
+    <div class="add">+//</div>
+    <div class="add">+// HSTU_FWD_NO_SOFTMAX_INSTANCES is the wider variant of the same mechanism: it keeps every</div>
+    <div class="add">+// softmax=false instance including the dropout ones (96 of 288), and only drops the softmax</div>
+    <div class="add">+// branch. Use it to validate the full no-softmax (SiLU) surface while the softmax instances</div>
+    <div class="add">+// are still broken on gfx1250. The two options are mutually exclusive; MINIMAL wins.</div>
+  </div>
+
+  <h4>(b) 编译期实例过滤 <span class="mono">hstu_fwd_keep_instance()</span> —— +3 行</h4>
+  <div class="diff">
+    <div class="ctx"> #if defined(HSTU_FWD_MINIMAL_INSTANCES)</div>
+    <div class="ctx">     return (!kUseSoftmax) &amp;&amp; (!kHasDropout);</div>
+    <div class="add">+#elif defined(HSTU_FWD_NO_SOFTMAX_INSTANCES)</div>
+    <div class="add">+    (void)kHasDropout;</div>
+    <div class="add">+    return !kUseSoftmax;</div>
+    <div class="ctx"> #else</div>
+    <div class="ctx">     return true;</div>
+    <div class="ctx"> #endif</div>
+  </div>
+  <p class="src"><code>(void)kHasDropout;</code> 是必需的 —— 该 TU 编译时带 <code>-Weverything</code>，不消费模板参数会触发 unused 警告。</p>
+
+  <h4>(c) 运行期拒绝 <span class="mono">hstu_fwd_minimal_reject()</span> —— +13 行</h4>
+  <p>新分支只拒绝 <code>use_softmax</code>，<b>放行 <code>p_drop &gt; 0</code></b>（这正是本次要新增验证的 dropout 路径），并给出指向新 option 名的诊断信息：</p>
+  <div class="diff">
+    <div class="ctx">         return true;</div>
+    <div class="ctx">     }</div>
+    <div class="ctx">     return false;</div>
+    <div class="add">+#elif defined(HSTU_FWD_NO_SOFTMAX_INSTANCES)</div>
+    <div class="add">+    (void)p_drop;</div>
+    <div class="add">+    if(use_softmax)</div>
+    <div class="add">+    {</div>
+    <div class="add">+        std::fprintf(stderr,</div>
+    <div class="add">+                     "[%s] this binary was built with HSTU_FWD_NO_SOFTMAX_INSTANCES=ON: the "</div>
+    <div class="add">+                     "softmax kernels are NOT compiled in (requested use_softmax=%d). Rebuild "</div>
+    <div class="add">+                     "with -DHSTU_FWD_NO_SOFTMAX_INSTANCES=OFF to use them.\n",</div>
+    <div class="add">+                     who,</div>
+    <div class="add">+                     static_cast&lt;int&gt;(use_softmax));</div>
+    <div class="add">+        return true;</div>
+    <div class="add">+    }</div>
+    <div class="add">+    return false;</div>
+    <div class="ctx"> #else</div>
+    <div class="ctx">     (void)use_softmax;</div>
+  </div>
+
+  <h3>2.4 我<b>没有</b>做的事</h3>
+  <ul>
+    <li>没有 <code>git add</code> / <code>commit</code> / <code>push</code>；HEAD 仍 <code>a56c3ea3f</code></li>
+    <li>没有触碰 <code>build_cmake/</code> —— 保留 48 实例的已验证基线，用作 §6 的唯一变量对照</li>
+    <li>没有修改 T1 的 gfx125 补丁（7 个 dispatch/setting 文件）、T2 的 4 个 interface TU、§3.2 的 RNG 修复</li>
+    <li>没有触碰 §3.1 的 softmax 路径，也没有再去试改 tile 表（HANDOFF 已明确「不要再让人去试」）</li>
+    <li>没有修 §6.6-L1 的 LDS bank swizzle（只影响性能）、§3.3 的 <code>num_tagets</code> 拼写 bug（既有 dead 断言）</li>
+  </ul>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span>构建结果</h2>
+  <p class="lead">新建 <code>build_nosoftmax/</code>，与 <code>build_cmake/</code> 并存，配置除新 option 外逐项照抄。</p>
+
+  <pre><code>cmake -G Ninja -S /data/composable_kernel -B /data/composable_kernel/build_nosoftmax \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_COMPILER=/opt/venv/bin/hipcc \
+  -DCMAKE_PREFIX_PATH="/tmp/rocm-cmake-install;/tmp/hipshim" \
+  -DGPU_TARGETS=gfx1250 \
+  -DHSTU_FWD_NO_SOFTMAX_INSTANCES=ON
+
+→ -- HSTU_FWD_NO_SOFTMAX_INSTANCES=ON: 96 fwd instances (softmax=false, dropout=true/false)
+
+ninja -j 255 tile_example_hstu_attention_fwd
+→ [107/108] 完成，error/FAILED 计数 = 0</code></pre>
+
+  <table>
+    <tr><th>产物</th><th class="num-cell">48 实例（build_cmake）</th><th class="num-cell">96 实例（build_nosoftmax）</th><th>比值</th></tr>
+    <tr><td class="mono">libhstufwd.so</td><td class="num-cell">—</td><td class="num-cell">242 477 568 B</td><td>—</td></tr>
+    <tr><td class="mono">bin/tile_example_hstu_attention_fwd</td><td class="num-cell">645 376 B</td><td class="num-cell">645 760 B</td><td>≈1.0（实例在 .so 里）</td></tr>
+    <tr><td>gfx1250 设备对象数</td><td class="num-cell">48</td><td class="num-cell">96</td><td><b>2.0×</b></td></tr>
+  </table>
+  <div class="callout ok">
+    <b>T2 的 cmake shim 在容器重建后全部健在</b>，无需重做：<code>/tmp/rocm-cmake-install</code>、<code>/tmp/hipshim</code>、
+    <code>$SDK/lib/cmake/hip-lang</code>、<code>$SDK/lib/libamdhip64.so</code> 软链 —— 四项均 EXISTS。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span>反汇编验收</h2>
+  <p class="lead">方法沿用 HANDOFF §0 的口径：<code>llvm-objdump --offloading</code> 展开全部 bundle（<b>不</b>用 <code>clang-offload-bundler --unbundle</code>，会低报 36 倍）。</p>
+
+  <table>
+    <tr><th>指令</th><th class="num-cell">96 实例版</th><th class="num-cell">48 实例版（HANDOFF 记录）</th><th>比值</th></tr>
+    <tr><td class="mono">v_wmma_f32_16x16x32_f16</td><td class="num-cell">110 592</td><td class="num-cell">55 296</td><td><b>2.0×</b></td></tr>
+    <tr><td class="mono">v_wmma_f32_16x16x32_bf16</td><td class="num-cell">110 592</td><td class="num-cell">55 296</td><td><b>2.0×</b></td></tr>
+    <tr><td class="mono"><b>v_wmma 合计</b></td><td class="num-cell"><b>221 184</b></td><td class="num-cell"><b>110 592</b></td><td><b>2.0×</b></td></tr>
+    <tr><td class="mono"><b>v_mfma 合计</b></td><td class="num-cell"><b>0</b></td><td class="num-cell"><b>0</b></td><td>—</td></tr>
+  </table>
+
+  <div class="callout ok">
+    <b>三重自洽</b>：实例数 ×2 → 设备对象数 ×2 → WMMA 指令数精确 ×2，且 fp16 / bf16 完全对称（各 110592）。
+    <b>96/96 设备对象全部含 WMMA，无一例外</b>（不存在 48 实例版里 RNG 那种「预期为 0」的例外，因为 RNG 的 4 个 TU 内嵌在 exe 而不在 .so 内）。
+    <code>v_mfma</code> 全域为 0，确认没有实例意外落到 gfx1250 上已移除的 MFMA 路径。
+  </div>
+  <p class="src">统计口径：96 个 <code>libhstufwd.so.*.hipv4-amdgcn-amd-amdhsa--gfx1250</code> 对象，逐个 <code>llvm-objdump -d --mcpu=gfx1250</code> 后计数并汇总。</p>
+  <div class="callout warn">
+    <b>方法坑（本次踩到，记下来）</b>：用 <code>xargs -P 32</code> 并行反汇编并直接写同一个 stdout 时，
+    多进程输出会<b>交错撕裂成碎片</b>（出现 <code>v_wmma_f32_16x16v_wmma_f32_16x16x32_f16</code> 这类拼接产物），
+    导致计数偏差。必须让每个进程写各自的文件再汇总。
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span>对拍矩阵：1:1 覆盖 96 个实例</h2>
+
+  <h3>5.1 维度空间与实例的精确对应</h3>
+  <p>96 个 no-softmax 实例的文件名分解后是一个完全正交的 5 维空间，<code>lse_false</code> 与 <code>no_bias</code> 在这 96 个里恒定：</p>
+  <table>
+    <tr><th>维度</th><th>取值</th><th class="num-cell">基数</th><th>对拍参数映射</th></tr>
+    <tr><td>mode</td><td>batched / jagged / group</td><td class="num-cell">3</td><td class="mono">-jagged=0 · -jagged=1 · -g=2</td></tr>
+    <tr><td>dtype</td><td>fp16 / bf16</td><td class="num-cell">2</td><td class="mono">-prec=</td></tr>
+    <tr><td>causal</td><td>has_causal / no_causal</td><td class="num-cell">2</td><td class="mono">-causal=1 · -causal=0</td></tr>
+    <tr><td>maxk</td><td>64 / 96 / 128 / 256</td><td class="num-cell">4</td><td class="mono">-hdim_qk= -hdim_v=</td></tr>
+    <tr><td>dropout</td><td>has_dropout / no_dropout</td><td class="num-cell">2</td><td class="mono">-p_drop=0.2 · -p_drop=0</td></tr>
+    <tr><td colspan="2"><b>合计</b></td><td class="num-cell"><b>3×2×2×4×2 = 96</b></td><td>与实例数精确相等</td></tr>
+  </table>
+
+  <h3>5.2 结果</h3>
+  <table>
+    <tr><th>mode</th><th class="num-cell">PASS</th><th class="num-cell">FAIL</th><th>失败项</th></tr>
+    <tr><td>batched</td><td class="num-cell">32</td><td class="num-cell">0</td><td>—</td></tr>
+    <tr><td>jagged</td><td class="num-cell">31</td><td class="num-cell">1</td><td class="mono">bf16/no_causal/maxk_128/has_dropout</td></tr>
+    <tr><td>group</td><td class="num-cell">28</td><td class="num-cell">4</td><td class="mono">fp16 × {has_causal:128,256 · no_causal:64,128} / no_dropout</td></tr>
+    <tr><td><b>合计</b></td><td class="num-cell"><b>91</b></td><td class="num-cell"><b>5</b></td><td>5 个全部为既有问题，见 §6</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <b>诚实记录一次我自己的脚本错误</b>：首轮 32 个 batched 全部 <code>rc=134</code>，
+    报 <code>'1 == seq_lengths_q.size()'</code>。这<b>不是 kernel 问题</b> —— 是我在 batched（<code>-jagged=0</code>）模式下
+    传了多值 <code>-seqlens=64,96,128,160</code>，而该模式要求单值。改成 <code>-seqlens=128</code> 后 <b>32/32 全过</b>。
+  </div>
+
+  <h3>5.3 负对照：证明 exit code 通路可信</h3>
+  <p>「全绿」本身不构成证据，必须先证明这个 harness 会对错误结果报错（§9.5 / §9.7）：</p>
+  <table>
+    <tr><th>输入</th><th class="mono">rc</th><th>行为</th><th>说明</th></tr>
+    <tr><td class="mono">-prec=fp64</td><td class="mono">253</td><td>参数解析拒绝</td><td>= −3，dtype 不识别</td></tr>
+    <tr><td class="mono">-hdim=512</td><td class="mono">134</td><td>abort</td><td><code>std::runtime_error: Head-dim sizes not supported!</code></td></tr>
+    <tr><td class="mono">-softmax=1</td><td class="mono">254</td><td>launcher 主动拒绝</td><td>命中我新增的 <code>NO_SOFTMAX_INSTANCES</code> 诊断分支 ✓</td></tr>
+    <tr><td class="mono">数值不匹配</td><td class="mono">254</td><td>逐元素报错</td><td>打印 <code>out[i] != ref[i]</code> 与 max err</td></tr>
+  </table>
+  <div class="callout warn">
+    <b>对 HANDOFF §6.4 判据表的补充</b>：<code>rc=254</code>（−2）现在有<b>两种</b>含义 —— 数值不匹配，
+    <b>或</b> launcher 因实例未编入而主动拒绝。两者靠 stderr 首行区分，不能只看 exit code。
+  </div>
+
+  <h3>5.4 数值级校验（不只看 exit code）</h3>
+  <p>抽取代表性配置 dump 出 device / host 两侧张量逐元素比对：</p>
+  <table>
+    <tr><th>配置</th><th class="num-cell">N</th><th class="num-cell">非零</th><th class="num-cell">cos_sim</th><th class="num-cell">max diff</th><th class="num-cell">超容差</th></tr>
+    <tr><td class="mono">fp16 HANDOFF 基线</td><td class="num-cell">23 040</td><td class="num-cell">23 040</td><td class="num-cell">1.0000000000</td><td class="num-cell">3.05e-5</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">fp16 hdim32</td><td class="num-cell">25 344</td><td class="num-cell">25 344</td><td class="num-cell">1.000000119</td><td class="num-cell">7.63e-6</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">fp16 hdim96</td><td class="num-cell">76 032</td><td class="num-cell">76 032</td><td class="num-cell">1.000000000</td><td class="num-cell">1.53e-5</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">fp16 hdim256</td><td class="num-cell">202 752</td><td class="num-cell">202 752</td><td class="num-cell">0.999999940</td><td class="num-cell">1.53e-5</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">fp16 seq1024</td><td class="num-cell">527 360</td><td class="num-cell">527 354</td><td class="num-cell">1.000000000</td><td class="num-cell">7.63e-6</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">fp16 group g=2</td><td class="num-cell">120 832</td><td class="num-cell">120 832</td><td class="num-cell">1.000000000</td><td class="num-cell">3.91e-3</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">bf16 基线</td><td class="num-cell">23 040</td><td class="num-cell">23 040</td><td class="num-cell">1.000000119</td><td class="num-cell">0</td><td class="num-cell">0</td></tr>
+    <tr><td class="mono">bf16 seq1024</td><td class="num-cell">527 360</td><td class="num-cell">527 360</td><td class="num-cell">1.000000119</td><td class="num-cell">9.54e-7</td><td class="num-cell">0</td></tr>
+  </table>
+  <div class="callout ok">
+    <b>「device 输出全非零」直接证伪了 wave3 §3.3(b) 那条旧结论</b>
+    （「QK/PV 两个 GEMM 在 gfx1250 上编译得过但不产生任何计算」）。
+    张量逐元素与 CPU reference 吻合到 cos_sim=1.0，GEMM 确实在算。
+  </div>
+  <p class="src">reference = CPU host 实现 <code>reference_hstu_attention_fwd.hpp</code>（0 处 <code>__global__</code>）；
+  比对 = <code>|o−r| &gt; atol + rtol·|r|</code>，rtol=1.6e-2 / atol=1e-5（<code>check_err.hpp:311-315</code>）。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span>5 个失败的根因：半 ulp 舍入，非本次引入</h2>
+
+  <h3>6.1 唯一变量对照 —— 先排除「是我改坏的」</h3>
+  <p>取失败项 <code>group/fp16/has_causal/maxk_128/no_dropout</code>，用<b>旧二进制</b>（48 实例、已通过基线对拍）跑<b>完全相同的参数</b>。唯一变化的变量是实例集：</p>
+  <table>
+    <tr><th>二进制</th><th>run1</th><th>run2</th><th>run3</th><th>结论</th></tr>
+    <tr><td>build_nosoftmax（96 实例，本次新建）</td><td class="mono">254</td><td class="mono">254</td><td class="mono">254</td><td>稳定复现，非抖动</td></tr>
+    <tr><td>build_cmake（48 实例，HANDOFF 基线）</td><td class="mono">254</td><td class="mono">254</td><td class="mono">254</td><td><b>同样失败 → 既有问题</b></td></tr>
+  </table>
+  <p>现象未随变量翻转 ⇒ <b>与我的 96 实例改动无因果关系</b>，是此前 48 实例基线就存在、只是没被那 22 个配置覆盖到的既有行为。</p>
+
+  <h3>6.2 误差定性 —— 每个 case 只错 1 个元素，误差恰好半 ulp</h3>
+  <table>
+    <tr><th>case</th><th class="num-cell">N</th><th class="num-cell">超容差</th><th class="num-cell">cos_sim</th><th class="num-cell">max diff</th><th class="num-cell">½ulp@max</th><th class="num-cell">ratio</th><th class="num-cell">出错元素 |ref|</th></tr>
+    <tr><td class="mono">jagged/bf16/no_causal/128/drop</td><td class="num-cell">20 480</td><td class="num-cell">1</td><td class="num-cell">1.000000000</td><td class="num-cell">2.44e-4</td><td class="num-cell">2.44e-4</td><td class="num-cell"><b>0.50</b></td><td class="num-cell">2.2e-4</td></tr>
+    <tr><td class="mono">group/fp16/has_causal/128</td><td class="num-cell">60 416</td><td class="num-cell">1</td><td class="num-cell">1.000000119</td><td class="num-cell">3.91e-3</td><td class="num-cell">3.91e-3</td><td class="num-cell"><b>0.50</b></td><td class="num-cell">6.0e-3</td></tr>
+    <tr><td class="mono">group/fp16/has_causal/256</td><td class="num-cell">120 832</td><td class="num-cell">1</td><td class="num-cell">0.999999881</td><td class="num-cell">3.91e-3</td><td class="num-cell">3.91e-3</td><td class="num-cell"><b>0.50</b></td><td class="num-cell">2.0e-3</td></tr>
+    <tr><td class="mono">group/fp16/no_causal/64</td><td class="num-cell">30 208</td><td class="num-cell">1</td><td class="num-cell">1.000000000</td><td class="num-cell">3.91e-3</td><td class="num-cell">3.91e-3</td><td class="num-cell"><b>0.50</b></td><td class="num-cell">2.7e-3</td></tr>
+    <tr><td class="mono">group/fp16/no_causal/128</td><td class="num-cell">60 416</td><td class="num-cell">1</td><td class="num-cell">1.000000000</td><td class="num-cell">3.91e-3</td><td class="num-cell">3.91e-3</td><td class="num-cell"><b>0.50</b></td><td class="num-cell">5.1e-3</td></tr>
+  </table>
+
+  <div class="callout ok">
+    <b>ratio 恒等于 0.50，跨 fp16 / bf16、跨 5 个不同配置完全一致。</b>
+    即 device 与 host 的差恰好是该张量最大量级下的<b>半个 ulp</b> —— 一次最近舍入所能产生的最小可能误差。
+    布局级 bug 不可能产生这种数值：它既不会只影响 1/60416 个元素，也不会恰好落在半 ulp 上。
+  </div>
+
+  <h3>6.3 为什么会被判超容差</h3>
+  <p>以 <code>group/fp16/has_causal/maxk_128</code> 为例：</p>
+  <dl class="kv">
+    <dt>张量动态范围</dt><dd>|ref| 中位数 1.93，最大 8.77</dd>
+    <dt>出错元素</dt><dd>|ref| = 0.00603 —— 落在全体最小的 <b>0.2%</b> 内（灾难性抵消的结果）</dd>
+    <dt>该元素容差</dt><dd>1e-5 + 1.6e-2 × 0.00603 = <b>1.06e-4</b></dd>
+    <dt>实际误差</dt><dd>3.91e-3 = 累加中间量级 [4,8) 下的半个 fp16 ulp</dd>
+    <dt>相对误差</dt><dd>3.86%（因为分母只有 0.006）</dd>
+  </dl>
+  <p>累加过程的中间量级是 ~8，fp16 在该区间 1 ulp = 7.8e-3，<b>比 atol=1e-5 大 780 倍</b>。
+  device 与 host 累加顺序不同，一次舍入分歧就足以超过按<b>结果自身</b>（而非累加量级）计算的容差。
+  这是对拍容差公式对灾难性抵消元素的固有局限，不是 kernel 缺陷。</p>
+
+  <h3>6.4 §6.6 风险清单的处置</h3>
+  <table>
+    <tr><th>风险</th><th>处置</th><th>依据</th></tr>
+    <tr><td><b>H1</b> Single→Double 子访问打包</td><td><span class="pill ok">已排除</span></td>
+        <td>判读捷径是「每 2 个错 1 个」。实测 <code>bad idx % 2 = [1,0]</code>、<code>% 4 = [1,0,0,0]</code>，
+            全张量只有 1 个错元素，且在 hdim 128 个位置里只占 1 个 —— 无任何规律性</td></tr>
+    <tr><td><b>H2</b> 转置 C 编码正确性未验证</td><td><span class="pill ok">已获实证</span></td>
+        <td>HSTU fwd 全程传 <code>TransposeC=true</code>；91/96 配置逐元素通过，含全部 4 档 maxk 与 3 种 mode</td></tr>
+    <tr><td><b>M1</b> bf16 两侧不同源（host 位运算 vs device 内联汇编）</td><td><span class="pill ok">未观察到问题</span></td>
+        <td>48 个 bf16 配置中 47 个 exit=0，唯一失败同为半 ulp；无 NaN / Inf</td></tr>
+    <tr><td><b>L1</b> LDS bank swizzle 走错分支（64 banks 用 32）</td><td><span class="pill warn">仍未修</span></td>
+        <td>只影响性能不影响正确性，本次未触碰，<code>fwd_pipeline_policy.hpp:250</code></td></tr>
+    <tr><td><b>L2</b> RDNA4(K=16) vs gfx1250(K=32) 错配</td><td><span class="pill ok">可关闭</span></td>
+        <td>反汇编 221184 条全是 <code>16x16x32</code>，无一条 K=16</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="num">7</span>对 HANDOFF 的订正</h2>
+
+  <h3>7.1 <span class="mono">gpu_busy_percent = 100</span> 是假信号，不能当 wedge 指标</h3>
+  <p>HANDOFF §3.4 把「<code>GPU% = 100</code> 恒定（8 个 XCC 全满）」列为 MES wedge 的旁证。实测推翻：</p>
+  <table>
+    <tr><th>状态</th><th>证据</th><th class="mono">gpu_busy_percent</th></tr>
+    <tr><td>完全空闲</td><td><code>/sys/class/kfd/kfd/proc/</code> 为空，ps 中无任何 GPU 进程</td><td class="mono">100 ×10 次采样</td></tr>
+    <tr><td>满负载</td><td>HSTU fwd b=8/nh=8/seq=4096 跑 perf</td><td class="mono">100 ×8 次采样</td></tr>
+  </table>
+  <div class="callout bad">
+    <b>结论</b>：在 gfx1250 上 <code>gpu_busy_percent</code>（以及 <code>rocm-smi</code> 的 GPU%）<b>恒为 100，与实际负载无关</b>，
+    是基线行为而非 wedge 特征。<b>后续任何人照着这个指标判 wedge 一定会误判。</b>
+    §3.4 里其余旁证（温度/功耗/SCLK 零波动、<code>rls</code> 显示 <code>No active runlist</code>、
+    <code>amdgpu_fence_info</code> 无推进）不受影响，仍然有效。
+  </div>
+  <p class="src">附带两点：<br>
+  ① 本次 <code>rocm-smi</code> 的 power 读数在 1574–2142 W、SCLK 在 1321–2312 MHz 之间变化过
+  （不像 GPU% 那样恒定）—— 但这只是两次<b>非受控</b>采样的差异，<b>本次未对这两项做负载对照实验</b>，
+  因此不能据此断言它们可以替代 GPU% 当 wedge 指标。<span class="pill warn">推断，未核实</span><br>
+  ② <code>/sys/kernel/debug/kfd/rls</code> 在容器重建后不存在（debugfs 未挂载），
+  §6.2 的辅助确认命令需先 <code>mount -t debugfs none /sys/kernel/debug</code> 才能用。</p>
+
+  <h3>7.2 §6.4 exit code 判据表需补充</h3>
+  <p>见 §5.3 —— <code>254</code> 现在同时表示「数值不匹配」和「实例未编入被 launcher 拒绝」。</p>
+
+  <h3>7.3 CMakeLists 注释中的实例数口径</h3>
+  <p>原注释写「48 of 288」，准确。补充完整口径供后续参考：288 个 forward 实例 =
+  <b>softmax_false 96</b>（48 no_dropout + 48 has_dropout）+ <b>softmax_true 192</b>，
+  其中 §3.1 编不过的 96 个 = softmax_true × {maxk_96, maxk_128}。三个数字彼此自洽。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">8</span>遗留与下一步</h2>
+
+  <div class="callout bad">
+    <b>§6.0 对平台的请求仍未被满足</b>：<code>cat /sys/module/amdgpu/parameters/gpu_recovery</code> → <code>0</code>。
+    上次 wedge 起于 00:05:48、05:14 才被发现，5 小时无人察觉的直接原因就是它。<b>建议再向平台提一次。</b>
+  </div>
+
+  <table>
+    <tr><th>项</th><th>状态</th><th>说明</th></tr>
+    <tr><td>no-softmax（SiLU）路径，全部 96 实例</td><td><span class="pill ok">已跑通并验证</span></td><td>91/96 逐元素通过，5 个为半 ulp 既有行为</td></tr>
+    <tr><td>dropout / RNG 路径</td><td><span class="pill ok">首次获数值证据</span></td><td>§3.2 的修复此前只有编译证据</td></tr>
+    <tr><td>§3.1 softmax 96 实例</td><td><span class="pill bad">未解决</span></td><td>本次<b>未触碰</b>。候选方向仍是为 softmax 路径单独关掉 trload（需重做 §2.4 的 2×2 交叉）</td></tr>
+    <tr><td>§6.6-L1 LDS bank swizzle</td><td><span class="pill warn">未修</span></td><td>1 行可修，只影响性能</td></tr>
+    <tr><td>§3.3 <code>num_tagets</code> 拼写</td><td><span class="pill warn">未修</span></td><td>既有 bug，值得上报上游</td></tr>
+    <tr><td>bwd 路径</td><td><span class="pill info">范围外</span></td><td>注意：两个 option 任一为 ON 时 <code>tile_example_hstu_attention_bwd</code> 都<b>链接不出来</b></td></tr>
+    <tr><td>性能调优</td><td><span class="pill info">未开始</span></td><td>已有 1276 TFLOPS 基线，可用 rocprofv3 剖析</td></tr>
+  </table>
+
+  <h4>建议的下一步（按性价比排序）</h4>
+  <ol>
+    <li>把这 96 个配置的对拍脚本固化成回归用例 —— 现在跑一轮只要几分钟</li>
+    <li>单独 wave 攻 §3.1 的 softmax 96 实例（工作量最大、不确定性最高）</li>
+    <li>顺手修 §6.6-L1（1 行）并用 rocprofv3 量化收益</li>
+  </ol>
+</section>
+
+<section id="s9">
+  <h2><span class="num">9</span>复现命令（逐字照抄可用）</h2>
+
+  <h4>环境</h4>
+  <pre><code>export PATH=/opt/venv/bin:$PATH
+export LD_LIBRARY_PATH=/data/composable_kernel/build_nosoftmax/lib:/opt/venv/lib/python3.14/site-packages/_rocm_sdk_core/lib
+export HIP_VISIBLE_DEVICES=0</code></pre>
+
+  <h4>单点对拍（HANDOFF §6.3 基线 case）</h4>
+  <pre><code>/data/composable_kernel/build_nosoftmax/bin/tile_example_hstu_attention_fwd \
+  -v=1 -prec=fp16 -b=3 -jagged=1 -nhead=1 -hdim_qk=128 -hdim_v=128 \
+  -seqlens=49,52,55 -causal=1 -local_len=4 -context_len=3 -minfull_len=0 -targets=4,5,6
+echo "EXIT=$?"        # 期望 0</code></pre>
+
+  <h4>dropout 路径（本次新增覆盖）</h4>
+  <pre><code>... -prec=fp16 -b=2 -jagged=0 -nhead=2 -hdim_qk=128 -hdim_v=128 \
+    -seqlens=192 -causal=1 -p_drop=0.2        # 期望 0</code></pre>
+
+  <h4>96 配置全矩阵</h4>
+  <pre><code>bash /tmp/hstu96.sh        # jagged + group（64 项）
+bash /tmp/hstu_batched.sh  # batched（32 项，seqlens 必须单值）</code></pre>
+
+  <h4>数值级校验（不满足于 exit code 时）</h4>
+  <pre><code>cd /tmp/somewhere &amp;&amp; &lt;上面任一命令&gt; -dump_output=1
+# 产出 output_dev.dat / output_host.dat，fp16 直接 np.float16 读，
+# bf16 需 (uint16 &lt;&lt; 16).view(float32)</code></pre>
+
+  <h4>反汇编验收</h4>
+  <pre><code>export PATH=$SDK/lib/llvm/bin:$PATH
+cd /data/composable_kernel/build_nosoftmax/lib
+llvm-objdump --offloading libhstufwd.so          # 展开 bundle 到当前目录
+ls libhstufwd.so.*.hipv4-amdgcn-amd-amdhsa--gfx1250 | \
+  xargs -P 32 -I{} sh -c 'llvm-objdump -d --mcpu=gfx1250 "{}" | \
+    grep -oE "\bv_(wmma|mfma)[a-z0-9_]*" | sort | uniq -c > /tmp/insn/$(basename "{}").cnt'
+# 注意：必须每进程写各自的文件，否则并行 stdout 会交错撕裂（见 §4）</code></pre>
+</section>
+
+<section id="s10">
+  <h2><span class="num">10</span>清理项增补（接 HANDOFF §5）</h2>
+  <p class="lead">以下是<b>本次新产生</b>的临时产物，按 HANDOFF §5 的 A→B→C 顺序补入 A / B 组。C 组（shim / 软链）未新增。</p>
+  <table>
+    <tr><th>组</th><th>路径</th><th>用途</th><th>能删吗</th></tr>
+    <tr><td>B</td><td class="mono">/data/composable_kernel/build_nosoftmax</td><td>96 实例构建目录（含 192 个展开的 bundle 文件）</td><td>⚠️ 要复跑对拍就留着；已被 <code>.gitignore:46 build*</code> 忽略</td></tr>
+    <tr><td>A</td><td class="mono">/tmp/hstu96.sh · /tmp/hstu_batched.sh · /tmp/hstu_matrix.sh</td><td>对拍矩阵脚本</td><td>⚠️ 建议保留 —— 是唯一的回归用例</td></tr>
+    <tr><td>A</td><td class="mono">/tmp/hstu_dump · /tmp/d5 · /tmp/d5x · /tmp/insn · /tmp/probe_dropout</td><td>dump 与反汇编统计中间产物</td><td>✅ 随时 <code>rm -rf</code></td></tr>
+    <tr><td>A</td><td class="mono">/tmp/*.log · /tmp/orig_minimal_instances.hpp · /tmp/perf.out</td><td>构建日志、diff 用的原文件重建副本</td><td>✅ 随时</td></tr>
+    <tr><td>A</td><td class="mono">/root/workspace/vector_add{,.cpp}</td><td>探活程序</td><td>✅ 随时（但很便宜，留着下次探活用）</td></tr>
+  </table>
+  <div class="callout">
+    <b>需要平台知悉的共享 SDK 改动本次为零</b> —— HANDOFF §5 的第 10、11 项（<code>$SDK</code> 内的 hip-lang shim 与软链）
+    是 T1/T2 留下的，本次沿用未改。
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  证据口径：所有数字均为本机实测，来源为命令输出或 dump 张量的逐元素统计。
+  推断性表述已在正文中显式标注。仓库 HEAD 未变（<code>a56c3ea3f</code>），工作区仍为 13 <code>M</code> + 2 <code>??</code>。
+</footer>
+
+</body>
+</html>
