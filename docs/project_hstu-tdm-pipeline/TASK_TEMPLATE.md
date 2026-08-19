@@ -126,7 +126,7 @@ cmake -G Ninja -S /data/composable_kernel -B build_nosoftmax \
 |---|---|---|
 | Step 0 | cherry-pick `a2ebc0513`（框架地基 + TDM 参考实现） | ✅ 代码落地；❌ **回归验证未完成** |
 | Step 1 | 真机验证 FMHA `qr_tdm` | ✅ **8/9 valid:y** |
-| Step 2 | HSTU TDM 骨架 + LDS 布局打平（仍用老 loader） | 未开始（设计已定，改动比预想小） |
+| Step 2 | HSTU TDM 骨架 + LDS 布局打平（仍用老 loader） | ✅ **代码完成，编译 0 错误，960 个 Tdm 符号已实例化，反汇编 221184 wmma / 0 mfma 与改动前一致**；❌ 数值未验证 |
 | Step 3 | dram dist 换 trivial tile-major（仍用老 loader） | 未开始 |
 | Step 4 | kernel 侧 K/V dram view 改 affine | 未开始 |
 | Step 5 | 换 `load_tile_tdm` + `s_wait_tensorcnt_barrier` | 未开始 |
